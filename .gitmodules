@@ -1,0 +1,9 @@
+[submodule "LE1-ASI-Plugins"]
+	path = LE1-ASI-Plugins
+	url = https://github.com/ME3Tweaks/LE1-ASI-Plugins.git
+[submodule "LE2-ASI-Plugins"]
+	path = LE2-ASI-Plugins
+	url = https://github.com/ME3Tweaks/LE2-ASI-Plugins.git
+[submodule "LE3-ASI-Plugins"]
+	path = LE3-ASI-Plugins
+	url = https://github.com/ME3Tweaks/LE3-ASI-Plugins.git
