@@ -20,7 +20,7 @@ SPI_PLUGINSIDE_SUPPORT(L"LinkerPrinter", VERSION, L"ME3Tweaks", SPI_GAME_LE1, SP
 #endif
 #ifdef GAMELE2
 #include "../../LE2-ASI-Plugins/LE2-SDK/Interface.h"
-#include "../../LE2-ASI-PluginsLE2-SDK/Common.h"
+#include "../../LE2-ASI-Plugins/LE2-SDK/Common.h"
 SPI_PLUGINSIDE_SUPPORT(L"LinkerPrinter", VERSION, L"ME3Tweaks", SPI_GAME_LE2, SPI_VERSION_ANY);
 #endif
 #ifdef GAMELE3
