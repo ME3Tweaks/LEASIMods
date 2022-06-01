@@ -13,23 +13,21 @@
 
 #ifdef GAMELE1
 #include "../../LE1-ASI-Plugins/LE1-SDK/Interface.h"
-#include "../../LE1-ASI-Plugins/LE1-SDK/Common.h"
 SPI_PLUGINSIDE_SUPPORT(ASINAME, VERSION, L"ME3Tweaks", SPI_GAME_LE1, SPI_VERSION_ANY);
 #define WINDOWNAME "Mass Effect"
 #endif
 #ifdef GAMELE2
 #include "../../LE2-ASI-Plugins/LE2-SDK/Interface.h"
-#include "../../LE2-ASI-Plugins/LE2-SDK/Common.h"
 SPI_PLUGINSIDE_SUPPORT(ASINAME, VERSION, L"ME3Tweaks", SPI_GAME_LE2, SPI_VERSION_ANY);
 #define WINDOWNAME "Mass Effect 2"
 #endif
 #ifdef GAMELE3
 #include "../../LE3-ASI-Plugins/LE3-SDK/Interface.h"
-#include "../../LE3-ASI-Plugins/LE3-SDK/Common.h"
 SPI_PLUGINSIDE_SUPPORT(ASINAME, VERSION, L"ME3Tweaks", SPI_GAME_LE3, SPI_VERSION_ANY);
 #define WINDOWNAME "Mass Effect 3"
 #endif
 
+#include "../../Shared-ASI/Common.h"
 #include "../../Shared-ASI/ME3Tweaks/ME3TweaksHeader.h"
 
 SPI_PLUGINSIDE_POSTLOAD;
