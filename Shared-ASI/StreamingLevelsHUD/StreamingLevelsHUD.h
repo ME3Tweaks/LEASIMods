@@ -203,7 +203,7 @@ void ProcessEvent_hook(UObject* Context, UFunction* Function, void* Parms, void*
 							ss << sl->PackageName.GetName();
 							if (sl->PackageName.Number > 0)
 							{
-								ss << "_" << sl->PackageName.Number;
+								ss << "_" << sl->PackageName.Number - 1;
 							}
 							if (sl->bIsVisible)
 							{
