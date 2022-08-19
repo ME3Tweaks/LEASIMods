@@ -10,7 +10,7 @@
 
 
 #define MYHOOK "LinkerPrinter_"
-#define VERSION L"2.0.0"
+#define VERSION L"3.0.0"
 
 
 #ifdef GAMELE1
