@@ -9,7 +9,7 @@
 
 #define ASINAME L"StreamingLevelsHUD"
 #define MYHOOK "StreamingLevelsHUD_"
-#define VERSION L"3.0.0"
+#define VERSION L"4.0.0"
 
 #ifdef GAMELE1
 #include "../../LE1-ASI-Plugins/LE1-SDK/Interface.h"
