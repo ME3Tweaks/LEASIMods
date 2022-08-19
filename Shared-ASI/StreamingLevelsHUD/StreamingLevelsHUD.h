@@ -200,6 +200,11 @@ void ProcessEvent_hook(UObject* Context, UFunction* Function, void* Parms, void*
 							unsigned char g = 255;
 							unsigned char b = 255;
 
+							if (!sl->bIsVisible && sl->bHasLoadRequestPending)
+							{
+								ss << ">> ";
+							}
+
 							ss << sl->PackageName.GetName();
 							if (sl->PackageName.Number > 0)
 							{
@@ -236,8 +241,8 @@ void ProcessEvent_hook(UObject* Context, UFunction* Function, void* Parms, void*
 							else if (sl->bShouldBeLoaded)
 							{
 								ss << " Pending load";
-								r = 255;
-								g = 175;
+								r = 185;
+								g = 169;
 								b = 0;
 							}
 							const std::wstring msg = ss.str();

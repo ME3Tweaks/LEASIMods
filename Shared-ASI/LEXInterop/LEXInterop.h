@@ -3,20 +3,16 @@
 #define MYHOOK "LEXInterop_"
 
 // Maybe change to use include path
-#ifdef LE1
+#ifdef GAMELE1
 #include "../../LE1-ASI-Plugins/LE1-SDK/Interface.h"
-#include "../../LE1-ASI-Plugins/LE1-SDK/Common.h"
-#include "../../LE1-ASI-Plugins/LE1-SDK/ME3TweaksHeader.h" // Make shared?
-#elif LE2
+#elif GAMELE2
 #include "../../LE2-ASI-Plugins/LE2-SDK/Interface.h"
-#include "../../LE2-ASI-Plugins/LE2-SDK/Common.h"
-#include "../../LE2-ASI-Plugins/LE2-SDK/ME3TweaksHeader.h" // Make shared?
-#elif LE3
+#elif GAMELE3
 #include "../../LE3-ASI-Plugins/LE3-SDK/Interface.h"
-#include "../../LE3-ASI-Plugins/LE3-SDK/Common.h"
-#include "../../LE3-ASI-Plugins/LE3-SDK/ME3TweaksHeader.h" // Make shared?
 #endif
 
+#include "../../Shared-ASI/Common.h"
+#include "../../Shared-ASI/ME3Tweaks/ME3TweaksHeader.h"
 
 
 // We should have a #define to make string formatting not suck

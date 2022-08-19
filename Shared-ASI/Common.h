@@ -1,7 +1,7 @@
 #pragma once
 #include <windows.h>
 #include <TlHelp32.h>
-
+#include <filesystem>
 #include <cstdio>
 #include <string>
 
@@ -17,6 +17,13 @@ typedef wchar_t wchar;
 #define _CONCAT_NAME(A, B) A ## B
 #define CONCAT_NAME(A, B) _CONCAT_NAME(A, B)
 
+// Call when you need the game's executable path (such as opening a log file)
+std::filesystem::path GetGameExePath() {
+    WCHAR path[MAX_PATH];
+    GetModuleFileNameW(NULL, path, MAX_PATH);
+    std::filesystem::path exePath = path;
+    return exePath.parent_path();
+}
 
 namespace Common
 {
