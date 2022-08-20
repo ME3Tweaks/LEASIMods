@@ -14,8 +14,13 @@ void ProcessCommand(char str[1024], DWORD dword)
 	if (!handled) handled = LEPathfindingGPS::HandleCommand(str);
 	if (!handled) handled = LELiveLevelEditor::HandleCommand(str);
 	if (!handled) handled = LEAnimViewer::HandleCommand(str);
+	if (!handled) {
+		writeln("Unhandled command!");
+	}
 	//if (!handled) handled = LE1AnimViewer::HandleCommand(str);
 }
+
+HANDLE hPipe;
 
 void HandlePipe()
 {
@@ -23,11 +28,11 @@ void HandlePipe()
 	char buffer[1024];
 	DWORD dwRead;
 
-#ifdef LE1
+#ifdef GAMELE1
 	hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\LEX_LE1_COMM_PIPE"),
-#elif LE2
+#elif GAMELE2
 	hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\LEX_LE2_COMM_PIPE"),
-#elif LE3
+#elif GAMELE3
 	hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\LEX_LE3_COMM_PIPE"),
 #endif
 		PIPE_ACCESS_INBOUND,

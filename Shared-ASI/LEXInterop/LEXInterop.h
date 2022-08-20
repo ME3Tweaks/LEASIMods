@@ -13,7 +13,7 @@
 
 #include "../../Shared-ASI/Common.h"
 #include "../../Shared-ASI/ME3Tweaks/ME3TweaksHeader.h"
-
+#include "UtilityMethods.h"
 
 // We should have a #define to make string formatting not suck
 
