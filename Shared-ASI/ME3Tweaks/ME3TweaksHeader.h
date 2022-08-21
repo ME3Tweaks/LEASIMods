@@ -302,7 +302,7 @@ private:
 
 
 /*Checks if w2 is part of w1*/
-bool isPartOf(char* w1, char* w2)
+bool isPartOf(char* w1, const char* w2)
 {
 	int i = 0;
 	int j = 0;

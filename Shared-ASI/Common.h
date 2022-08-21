@@ -159,7 +159,9 @@ namespace Common
     writeln(L"Attach - found " #VAR L" pattern: 0x%p", VAR);
 
 
-
+#define INIT_POSTHOOK(VAR, PATTERN) \
+    INIT_FIND_PATTERN_POSTHOOK(VAR, PATTERN) \
+    INIT_HOOK_PATTERN(VAR)
 
 
 
@@ -178,6 +180,15 @@ namespace Common
 #elif defined GAMELE3
 // Pattern for hooking ProcessInternal (LE3)
 #define LE_PATTERN_POSTHOOK_PROCESSINTERNAL   /*"40 53 55 56 57*/ "48 81 ec 88 00 00 00 48 8b 05 05 62 6d 01 48 33 c4 48 89 44 24 70"
+#endif
+
+//Pattern for hooking Exec (console command processing)
+#ifdef GAMELE1
+#define LE_PATTERN_POSTHOOK_EXEC   /*"48 8b c4 48 89*/ "50 10 55 56 57 41 54 41 55 41 56 41 57 48 8d a8 d8 fe ff ff 48 81 ec f0 01 00 00 48 c7 45 60 fe ff ff ff"
+#elif defined GAMELE2
+#define LE_PATTERN_POSTHOOK_EXEC   /*"48 8b c4 55 56*/ "57 41 54 41 55 41 56 41 57 48 8d a8 c8 fd ff ff 48 81 ec 20 03 00 00"
+#elif defined GAMELE3
+#define LE_PATTERN_POSTHOOK_EXEC   /*"48 8b c4 4c 89*/ "40 18 48 89 50 10 48 89 48 08 55 53 56 57 41 54 41 55 41 56 41 57 48 8d a8 58 fe ff ff"
 #endif
 
 // Pattern for hooking the constructor function for an FName/SFXName (LE1/LE2/LE3)
