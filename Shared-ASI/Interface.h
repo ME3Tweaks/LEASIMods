@@ -147,7 +147,7 @@ public:
     /// <param name="outOffsetPtr">Output value for the offset, set to NULL if not found.</param>
     /// <param name="combinedPattern">PEiD-style pattern specifying 100 bytes (299 chars + \0) at most.</param>
     /// <returns>An appropriate <see cref="SPIReturn"/> code.</returns>
-    SPIDECL FindPattern(void** outOffsetPtr, char* combinedPattern) = 0;
+    SPIDECL FindPattern(void** outOffsetPtr, const char* combinedPattern) = 0;
 
     /// <summary>
     /// Use bink proxy's built-in injection library to detour a procedure.

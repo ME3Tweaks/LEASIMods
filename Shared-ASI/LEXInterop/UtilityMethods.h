@@ -92,7 +92,7 @@ inline std::wostream& operator<< (std::wostream& out, FString const& fString)
 // Strings sent to LEX should use the following format:
 // [FEATURENAME] [Args...]
 // e.g. PATHFINDING_GPS PLAYERLOC=1,2,3
-void SendStringToLEX(const wstring& wstr) {
+void SendStringToLEX(const wstring& wstr, UINT timeout = 10) {
 	if (const auto handle = FindWindow(nullptr, L"Legendary Explorer"))
 	{
 		constexpr unsigned long SENT_FROM_LE1 = 0x02AC00C7;
@@ -101,7 +101,7 @@ void SendStringToLEX(const wstring& wstr) {
 		cds.dwData = SENT_FROM_LE1;
 		cds.cbData = (wstr.length() + 1) * sizeof(wchar_t);
 		cds.lpData = PVOID(wstr.c_str());
-		SendMessageTimeout(handle, WM_COPYDATA, NULL, reinterpret_cast<LPARAM>(&cds), 0, 10, nullptr);
+		SendMessageTimeout(handle, WM_COPYDATA, NULL, reinterpret_cast<LPARAM>(&cds), 0, timeout, nullptr);
 	}
 }
 
@@ -177,15 +177,6 @@ void SendMessageToLEX(USequenceOp* op)
 float ToRadians(const int unrealRotationUnits)
 {
 	return unrealRotationUnits * 360.0f / 65536.0f * 3.1415926535897931f / 180.0f;
-}
-
-const wchar_t* CharToWideMUSTDEALLOCATEAFTERUSE(const char* c)
-{
-	const size_t cSize = strlen(c) + 1;
-	wchar_t* wc = new wchar_t[cSize];
-	mbstowcs(wc, c, cSize);
-
-	return wc;
 }
 
 // Game utility methods

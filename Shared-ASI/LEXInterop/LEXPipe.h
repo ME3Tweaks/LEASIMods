@@ -1,3 +1,5 @@
+#pragma once
+
 void ProcessCommand(char str[1024], DWORD dword)
 {
 	// Remove /r/n
@@ -6,14 +8,15 @@ void ProcessCommand(char str[1024], DWORD dword)
 	{
 		test++;
 	}
-	*test = 0; // This will remove \r\n from the string
+	*test = '\0'; // This will remove \r\n from the string
 
 	writeln("Received command: %hs", str);
 
-	bool handled = LE1GenericCommands::HandleCommand(str);
-	if (!handled) handled = LEPathfindingGPS::HandleCommand(str);
-	if (!handled) handled = LELiveLevelEditor::HandleCommand(str);
-	if (!handled) handled = LEAnimViewer::HandleCommand(str);
+	bool handled = LE1GenericCommands::HandleCommand(str)
+				|| LEPathfindingGPS::HandleCommand(str)
+				|| LELiveLevelEditor::HandleCommand(str)
+				|| LEAnimViewer::HandleCommand(str);
+
 	if (!handled) {
 		writeln("Unhandled command!");
 	}

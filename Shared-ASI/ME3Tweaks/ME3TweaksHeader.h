@@ -16,12 +16,15 @@
 
 #ifdef GAMELE1
 #include "../../LE1-ASI-Plugins/LE1-SDK/SdkHeaders.h"
+#define LOCATION Location
 #endif
 #ifdef GAMELE2
 #include "../../LE2-ASI-Plugins/LE2-SDK/SdkHeaders.h"
+#define LOCATION Location
 #endif
 #ifdef GAMELE3
 #include "../../LE3-ASI-Plugins/LE3-SDK/SdkHeaders.h"
+#define LOCATION location
 #endif
 
 #endif
@@ -333,4 +336,9 @@ std::string wchar2string(wchar_t* str)
 	while (*str)
 		mystring += (char)*str++;
 	return  mystring;
+}
+
+bool IsDefaultObject(UObject* obj)
+{
+	return *reinterpret_cast<uint64*>(&obj->ObjectFlags) & 0x0000000000000200;
 }
