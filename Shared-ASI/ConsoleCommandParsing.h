@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cctype>
+
 //if cmdRef starts with cmdName (case insensitive), returns true and advances cmdRef past cmdName
 bool IsCmd(wchar_t** cmdRef, const wchar_t* cmdName)
 {

@@ -1,5 +1,8 @@
 #pragma once
 
+#include "../Interface.h"
+#include "../ME3Tweaks/ME3TweaksHeader.h"
+
 // Common data
 class SharedData
 {

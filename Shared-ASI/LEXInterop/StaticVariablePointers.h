@@ -1,5 +1,10 @@
 #pragma once
 
+#include "../Common.h"
+#include "../ME3Tweaks/ME3TweaksHeader.h"
+#include "LEXInterop.h"
+#include "SharedData.h"
+
 // Typedefs
 typedef void (*tSFXNameConstructor)(FName* outValue, const wchar_t* nameValue, int nameNumber, BOOL createIfNotFoundMaybe, BOOL unk2);
 

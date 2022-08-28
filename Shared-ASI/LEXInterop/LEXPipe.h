@@ -1,4 +1,11 @@
 #pragma once
+#include <winbase.h>
+#include "../Common.h"
+#include "InteropActionQueue.h"
+#include "LEAnimViewer.h"
+#include "LELiveLevelEditor.h"
+#include "LEPathfindingGPS.h"
+#include "GenericCommands.h"
 
 void ProcessCommand(char str[1024], DWORD dword)
 {
@@ -12,10 +19,11 @@ void ProcessCommand(char str[1024], DWORD dword)
 
 	writeln("Received command: %hs", str);
 
-	bool handled = LE1GenericCommands::HandleCommand(str)
-				|| LEPathfindingGPS::HandleCommand(str)
-				|| LELiveLevelEditor::HandleCommand(str)
-				|| LEAnimViewer::HandleCommand(str);
+	const bool handled = 
+	   GenericCommands::HandleCommand(str)
+	|| LEPathfindingGPS::HandleCommand(str)
+	|| LELiveLevelEditor::HandleCommand(str)
+	|| LEAnimViewer::HandleCommand(str);
 
 	if (!handled) {
 		writeln("Unhandled command!");
@@ -44,7 +52,7 @@ void HandlePipe()
 		1024 * 16,
 		1024 * 16,
 		NMPWAIT_USE_DEFAULT_WAIT,
-		NULL);
+		nullptr);
 
 	if (hPipe != nullptr)
 		writeln("PIPED UP");
@@ -53,7 +61,7 @@ void HandlePipe()
 
 	while (hPipe != INVALID_HANDLE_VALUE)
 	{
-		if (ConnectNamedPipe(hPipe, NULL) != FALSE)   // wait for someone to connect to the pipe
+		if (ConnectNamedPipe(hPipe, nullptr) != FALSE)   // wait for someone to connect to the pipe
 		{
 			while (ReadFile(hPipe, buffer, sizeof(buffer) - 1, &dwRead, NULL) != FALSE)
 			{

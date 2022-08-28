@@ -137,7 +137,9 @@ namespace Common
     writeln(L"Attach - found " #VAR L" global variable: %#p", VAR);
 
 ///
-/// Installs a hook at the specified address and redirects it to the specified function name. The original must end with _orig as this macro looks for a method with that name.
+/// Installs a hook at the specified address and redirects it to the specified function name.
+/// In addition to the target pointer passed to this macro, there must be a detour function and a pointer for calling the original function.
+/// These should have the same name as the target pointer, but with the _hook and _orig suffixes
 ///
 #define INIT_HOOK_PATTERN(VAR) \
     if (auto rc = InterfacePtr->InstallHook(MYHOOK #VAR, VAR, CONCAT_NAME(VAR, _hook), (void**)& CONCAT_NAME(VAR, _orig)); rc != SPIReturn::Success) \
@@ -159,6 +161,10 @@ namespace Common
     writeln(L"Attach - found " #VAR L" pattern: 0x%p", VAR);
 
 
+/// Installs a hook 5 bytes prior to the address where it finds the pattern (Hooking modifies the first 5 bytes of a function, so this allows multiple hooks to be created for a single function).
+/// In addition to the target pointer passed to this macro, there must be a detour function and a pointer for calling the original function.
+/// These should have the same name as the target pointer, but with the _hook and _orig suffixes
+///
 #define INIT_POSTHOOK(VAR, PATTERN) \
     INIT_FIND_PATTERN_POSTHOOK(VAR, PATTERN) \
     INIT_HOOK_PATTERN(VAR)
