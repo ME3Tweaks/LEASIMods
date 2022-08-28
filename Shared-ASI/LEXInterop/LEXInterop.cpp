@@ -83,20 +83,22 @@ FString* TLKLookup_hook(void* param1, FString* outString, int stringID, BOOL bPa
 
 typedef void (*tProcessEvent)(UObject* Context, UFunction* Function, void* Parms, void* Result);
 tProcessEvent ProcessEvent = nullptr;
-
 tProcessEvent ProcessEvent_orig = nullptr;
+bool runProcessEventOrig;
+
 void ProcessEvent_hook(UObject* Context, UFunction* Function, void* Parms, void* Result)
 {
 	// ProcessEvent calls return true or false if the following functions should also handle
 	// the call (to increase perf)
 	// Implementations should take care to allow follow up invocations if it might be appropriate
 	// This is a debug tool; performance loss is to be expected
+	runProcessEventOrig = true;
 
 	SharedData::ProcessEvent(Context, Function, Parms, Result) // Update the shared data automatically
-	&& LEXCommunications::ProcessEvent(Context, Function, Parms, Result)
-	&& LEPathfindingGPS::ProcessEvent(Context, Function, Parms, Result)
-	&& LELiveLevelEditor::ProcessEvent(Context, Function, Parms, Result)
-	&& LEAnimViewer::ProcessEvent(Context, Function, Parms, Result);
+		&& LEXCommunications::ProcessEvent(Context, Function, Parms, Result)
+		&& LEPathfindingGPS::ProcessEvent(Context, Function, Parms, Result)
+		&& LELiveLevelEditor::ProcessEvent(Context, Function, Parms, Result, runProcessEventOrig)
+		&& LEAnimViewer::ProcessEvent(Context, Function, Parms, Result);
 
 
 	ActionBase* actionPtr;
@@ -106,7 +108,11 @@ void ProcessEvent_hook(UObject* Context, UFunction* Function, void* Parms, void*
 		delete actionPtr;
 	}
 
-	ProcessEvent_orig(Context, Function, Parms, Result);
+	if (runProcessEventOrig) {
+		// Some of the process events might handle the result. In this instance we do not want to call the original
+		// function
+		ProcessEvent_orig(Context, Function, Parms, Result);
+	}
 }
 
 
