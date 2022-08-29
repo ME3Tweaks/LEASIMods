@@ -15,6 +15,8 @@ public:
 	static TArray<UObject*> Actors;
 	static AActor* SelectedActor;
 	static bool DrawLineToSelected;
+	static FColor TraceLineColor;
+	static float CoordinateScale;
 private:
 	static void DumpActors()
 	{
@@ -246,7 +248,8 @@ public:
 				hud->FlushPersistentDebugLines(); // Clear it out
 				if (DrawLineToSelected) {
 
-					hud->DrawDebugLine(SharedData::cachedPlayerPosition, SelectedActor->LOCATION, 255, 255, 255, TRUE);
+					hud->DrawDebugLine(SharedData::cachedPlayerPosition, SelectedActor->LOCATION, TraceLineColor.R, TraceLineColor.G, TraceLineColor.B, TRUE);
+					hud->DrawDebugCoordinateSystem(SelectedActor->Location, FRotator(), CoordinateScale, TRUE);
 				}
 			}
 		}
@@ -279,6 +282,20 @@ public:
 		if (IsCmd(&command, "LLE_HIDE_TRACE"))
 		{
 			DrawLineToSelected = false;
+			return true;
+		}
+
+		if (IsCmd(&command, "LLE_TRACE_COLOR "))
+		{
+			TraceLineColor.R = (BYTE)strtol(command, &command, 10);
+			TraceLineColor.G = (BYTE)strtol(command, &command, 10);
+			TraceLineColor.B = (BYTE)strtol(command, &command, 10);
+			return true;
+		}
+
+		if (IsCmd(&command, "LLE_AXES_Scale "))
+		{
+			CoordinateScale = strtof(command, &command);
 			return true;
 		}
 
@@ -345,3 +362,5 @@ TArray<UObject*> LELiveLevelEditor::Actors = TArray<UObject*>();
 AActor* LELiveLevelEditor::SelectedActor = nullptr;
 bool LELiveLevelEditor::DrawLineToSelected = true;
 bool LELiveLevelEditor::IsLLEActive = false; 
+FColor LELiveLevelEditor::TraceLineColor = FColor{0,255,255,255}; //B, G, R, A
+float LELiveLevelEditor::CoordinateScale = 100;
