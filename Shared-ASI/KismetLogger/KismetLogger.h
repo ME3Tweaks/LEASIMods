@@ -11,21 +11,20 @@
 #define MYHOOK "KismetLogger_"
 #define VERSION L"3.0.0"
 
+
+#include "../../Shared-ASI/Common.h"
+#include "../../Shared-ASI/Interface.h"
+#include "../../Shared-ASI/ME3Tweaks/ME3TweaksHeader.h"
+
 #ifdef GAMELE1
-#include "../../LE1-ASI-Plugins/LE1-SDK/Interface.h"
 SPI_PLUGINSIDE_SUPPORT(ASINAME, VERSION, L"ME3Tweaks", SPI_GAME_LE1, SPI_VERSION_ANY);
 #endif
 #ifdef GAMELE2
-#include "../../LE2-ASI-Plugins/LE2-SDK/Interface.h"
 SPI_PLUGINSIDE_SUPPORT(ASINAME, VERSION, L"ME3Tweaks", SPI_GAME_LE2, SPI_VERSION_ANY);
 #endif
 #ifdef GAMELE3
-#include "../../LE3-ASI-Plugins/LE3-SDK/Interface.h"
 SPI_PLUGINSIDE_SUPPORT(ASINAME, VERSION, L"ME3Tweaks", SPI_GAME_LE3, SPI_VERSION_ANY);
 #endif
-
-#include "../../Shared-ASI/Common.h"
-#include "../../Shared-ASI/ME3Tweaks/ME3TweaksHeader.h"
 
 SPI_PLUGINSIDE_POSTLOAD;
 SPI_PLUGINSIDE_ASYNCATTACH;
@@ -78,29 +77,6 @@ void ProcessEvent_hook(UObject* Context, UFunction* Function, void* Parms, void*
 // ======================================================================
 // ProcessInternal hook (for native .Activated())
 // ======================================================================
-
-struct OutParmInfo
-{
-	UProperty* Prop;
-	BYTE* PropAddr;
-	OutParmInfo* Next;
-};
-
-struct FFrame
-{
-	void* vtable;
-#if defined GAMELE1 || defined GAMELE2
-	int unks[3];
-#elif defined GAMELE3
-	int unks[4];
-#endif
-	UStruct* Node;
-	UObject* Object;
-	BYTE* Code;
-	BYTE* Locals;
-	FFrame* PreviousFrame;
-	OutParmInfo* OutParms;
-};
 
 typedef void (*tProcessInternal)(UObject* Context, FFrame* Stack, void* Result);
 tProcessInternal ProcessInternal = nullptr;
