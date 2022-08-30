@@ -163,7 +163,7 @@ private:
 	static void SetActorPosition(const float x, const float y, const float z)
 	{
 		if (SelectedActor) {
-			InteropActionQueue.push(new MoveAction(SelectedActor, FVector{x, y, z}));
+			InteropActionQueue.push(new MoveAction(SelectedActor, FVector{ x, y, z }));
 		}
 	}
 
@@ -221,23 +221,17 @@ private:
 public:
 	// Return true if other features should also be able to handle this function call
 	// Return false if other features shouldn't be able to also handle this function call
-	static bool ProcessEvent(UObject* Context, UFunction* Function, void* Parms, void* Result, bool& shouldCallOriginalPE)
+	static bool ProcessEvent(UObject* Context, UFunction* Function, void* Parms, void* Result)
 	{
-		const auto funcName = Function->GetName();
-
-		if (IsLLEActive && strcmp(funcName, "HasFocus") == 0)
-		{
-			Function->Func = &AlwaysPositiveNative;
-			return false;
-		}
-
 		if (SelectedActor == nullptr)
 			return true; // We have nothing to handle here
 
 		// PostRender
+		const auto funcName = Function->GetName();
 
 		// This isn't that efficient since we could skip this every time if
 		// we weren't drawing the line. But we have to be able to flush it out.
+
 		if (strcmp(funcName, "PostRender") == 0)
 		{
 			const auto hud = reinterpret_cast<ABioHUD*>(Context);
@@ -344,4 +338,4 @@ public:
 TArray<UObject*> LELiveLevelEditor::Actors = TArray<UObject*>();
 AActor* LELiveLevelEditor::SelectedActor = nullptr;
 bool LELiveLevelEditor::DrawLineToSelected = true;
-bool LELiveLevelEditor::IsLLEActive = false; 
+bool LELiveLevelEditor::IsLLEActive = false;

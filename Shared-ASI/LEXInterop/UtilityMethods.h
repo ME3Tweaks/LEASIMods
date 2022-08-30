@@ -154,10 +154,17 @@ inline std::wostream& operator<< (std::wostream& out, FString const& fString)
 void SendStringToLEX(const wstring& wstr, const UINT timeout = 100) {
 	if (const auto handle = FindWindow(nullptr, L"Legendary Explorer"))
 	{
-		constexpr unsigned long SENT_FROM_LE1 = 0x02AC00C7;
+#if GAMELE1
+		constexpr unsigned long SENT_FROM_GAME = 0x02AC00C7;
+#elif defined GAMELE2
+		constexpr unsigned long SENT_FROM_GAME = 0x02AC00C6;
+#elif defined GAMELE3
+		constexpr unsigned long SENT_FROM_GAME = 0x02AC00C5;
+#endif
+
 		COPYDATASTRUCT cds;
 		ZeroMemory(&cds, sizeof(COPYDATASTRUCT));
-		cds.dwData = SENT_FROM_LE1;
+		cds.dwData = SENT_FROM_GAME;
 		cds.cbData = (wstr.length() + 1) * sizeof(wchar_t);
 		cds.lpData = PVOID(wstr.c_str());
 		SendMessageTimeout(handle, WM_COPYDATA, NULL, reinterpret_cast<LPARAM>(&cds), 0, timeout, nullptr);

@@ -23,7 +23,7 @@ public:
 #ifdef GAMELE1
 		constexpr auto byte_pattern = "48 8b 0d 6b 2b 47 01 e8 2e 63 30 00 0f 28 f8 48 8b 0d 5c 2b 47 01";
 #elif defined(GAMELE2)
-#error Find GWorld for LE2!
+		constexpr auto byte_pattern = "48 8b 0d 6b 2b 47 01 e8 2e 63 30 00 0f 28 f8 48 8b 0d 5c 2b 47 01";
 #elif defined(GAMELE3)
 #error Find GWorld for LE3!
 #endif

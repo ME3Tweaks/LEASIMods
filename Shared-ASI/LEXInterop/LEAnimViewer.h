@@ -5,12 +5,22 @@
 #include "SharedData.h"
 #include "UtilityMethods.h"
 
+
+
 // typedefs
 typedef bool (*tIsWindowFocused)();
 
+#ifdef GAMELE1
+#define IS_WINDOW_FOCUSED_PATTERN /*"48 83 ec 28 48*/ "8b 05 5d 3f c2 00 48 85 c0 74 2c 48 8b 88 c8 07 00 00 48 85 c9 74 20 48 8b 89 68 01 00 00"
+#elif defined GAMELE2
+#define IS_WINDOW_FOCUSED_PATTERN /*"48 83 ec 28 48*/ "8b 05 2d bf c5 00 48 85 c0 74 29 48 8b 88 a0 07 00 00 48 85 c9 74 1d 48 8b 49 78"
+#elif defined GAMELE2
+#define IS_WINDOW_FOCUSED_PATTERN /*"48 83 ec 28 48*/ "8b 05 5d 3f c2 00 48 85 c0 74 2c 48 8b 88 c8 07 00 00 48 85 c9 74 20 48 8b 89 68 01 00 00"
+#endif
+
 class LEAnimViewer
 {
-#ifdef GAMELE1
+#if defined GAMELE1 || defined GAMELE2
 	// Memory pre-allocated for use with passing to kismet, since FString doesn't copy it
 	static wchar_t ActorFullMemoryPath[1024];
 	static std::wstring ActorMemoryPath;
@@ -18,6 +28,7 @@ class LEAnimViewer
 #endif
 
 	// BioWorldInfo internal native
+	// HasFocus()
 	static tIsWindowFocused IsWindowFocused;
 	static tIsWindowFocused IsWindowFocused_orig;
 
@@ -37,7 +48,7 @@ class LEAnimViewer
 		const auto InterfacePtr = SharedData::SPIInterfacePtr;
 		if (!IsWindowFocused)
 		{
-			INIT_POSTHOOK(IsWindowFocused, /*"48 83 ec 28 48*/ "8b 05 5d 3f c2 00 48 85 c0 74 2c 48 8b 88 c8 07 00 00 48 85 c9 74 20 48 8b 89 68 01 00 00");
+			INIT_POSTHOOK(IsWindowFocused, IS_WINDOW_FOCUSED_PATTERN);
 		}
 		AllowPausing = allow;
 		return true;
@@ -69,7 +80,6 @@ public:
 			return true;
 		}
 
-#ifdef GAMELE1
 		if (stringStartsWith("ANIMV_CHANGE_PAWN ", command))
 		{
 			// Test code.
@@ -92,12 +102,8 @@ public:
 			//ActorPackageFile = s2ws(GetCommandParam(command));
 			//ActorMemoryPath = s2ws(GetCommandParam(command));
 
-
-
 			return true;
-
 		}
-#endif
 
 		return false;
 	}
@@ -161,4 +167,13 @@ tIsWindowFocused LEAnimViewer::IsWindowFocused_orig = nullptr;
 wchar_t LEAnimViewer::ActorFullMemoryPath[1024];
 std::wstring LEAnimViewer::ActorMemoryPath = L"BIOA_NOR_C.HMM.hench_pilot";
 std::wstring LEAnimViewer::ActorPackageFile = L"BIOA_NOR10_01_DS1";
+#elif defined GAMELE2
+wchar_t LEAnimViewer::ActorFullMemoryPath[1024];
+std::wstring LEAnimViewer::ActorMemoryPath = L"BioHench_Vixen.hench_vixen_01";
+std::wstring LEAnimViewer::ActorPackageFile = L"BioH_Vixen_01";
+#elif defined GAMELE3
+#error FIX ME UP FOR LE3
+wchar_t LEAnimViewer::ActorFullMemoryPath[1024];
+std::wstring LEAnimViewer::ActorMemoryPath = L"BioHench_Vixen.hench_vixen_01";
+std::wstring LEAnimViewer::ActorPackageFile = L"BioH_Vixen_01";
 #endif
