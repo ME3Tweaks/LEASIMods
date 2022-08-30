@@ -160,7 +160,7 @@ private:
 bool LEAnimViewer::AllowPausing = false;
 tIsWindowFocused LEAnimViewer::IsWindowFocused = nullptr;
 tIsWindowFocused LEAnimViewer::IsWindowFocused_orig = nullptr;
-
+#if defined GAMELE1
 wchar_t LEAnimViewer::ActorFullMemoryPath[1024];
 std::wstring LEAnimViewer::ActorMemoryPath = L"BIOA_NOR_C.HMM.hench_pilot";
 std::wstring LEAnimViewer::ActorPackageFile = L"BIOA_NOR10_01_DS1";

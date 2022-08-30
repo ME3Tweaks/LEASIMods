@@ -66,17 +66,46 @@ struct ComponentMoveAction final : ActionBase
 	void Execute() override
 	{
 		FVector translation;
-		FVector scale;
+		FVector scale3D;
 		float pitch;
 		float yaw;
 		float roll;
-		MatrixDecompose(Component->CachedParentToWorld, translation, scale, pitch, yaw, roll);
+		MatrixDecompose(Component->CachedParentToWorld, translation, scale3D, pitch, yaw, roll);
 		Component->CachedParentToWorld = IdentityMatrix;
 		Component->Rotation = FRotator{ RadiansToUnrealRotationUnits(pitch), RadiansToUnrealRotationUnits(yaw), RadiansToUnrealRotationUnits(roll) };
-		Component->Scale = 1;
-		Component->Scale3D = scale;
+		scale3D.X /= Component->Scale;
+		scale3D.Y /= Component->Scale;
+		scale3D.Z /= Component->Scale;
+		Component->Scale3D = scale3D;
 		Component->SetTranslation(Vector);
-		Component->CachedParentToWorld = MatrixCompose(Vector, scale, pitch, yaw, roll);
+		Component->CachedParentToWorld = MatrixCompose(Vector, scale3D, pitch, yaw, roll);
+	}
+};
+
+struct ComponentScaleAction final : ActionBase
+{
+	UStaticMeshComponent* Component;
+	float Scale;
+
+	ComponentScaleAction(UStaticMeshComponent* component, const float scale) : Component(component), Scale(scale) {}
+
+	void Execute() override
+	{
+		FVector translation;
+		FVector scale3D;
+		float pitch;
+		float yaw;
+		float roll;
+		MatrixDecompose(Component->CachedParentToWorld, translation, scale3D, pitch, yaw, roll);
+		Component->CachedParentToWorld = IdentityMatrix;
+		Component->Translation = translation;
+		Component->Rotation = FRotator{ RadiansToUnrealRotationUnits(pitch), RadiansToUnrealRotationUnits(yaw), RadiansToUnrealRotationUnits(roll) };
+		scale3D.X /= Component->Scale;
+		scale3D.Y /= Component->Scale;
+		scale3D.Z /= Component->Scale;
+		Component->Scale3D = scale3D;
+		Component->SetScale(Scale);
+		Component->CachedParentToWorld = MatrixCompose(translation, scale3D, pitch, yaw, roll);
 	}
 };
 
@@ -98,7 +127,6 @@ struct ComponentScale3DAction final : ActionBase
 		Component->CachedParentToWorld = IdentityMatrix;
 		Component->Translation = translation;
 		Component->Rotation = FRotator{ RadiansToUnrealRotationUnits(pitch), RadiansToUnrealRotationUnits(yaw), RadiansToUnrealRotationUnits(roll) };
-		Component->Scale = 1;
 		Component->SetScale3D(ScaleVector);
 		Component->CachedParentToWorld = MatrixCompose(translation, ScaleVector, pitch, yaw, roll);
 	}
@@ -114,19 +142,21 @@ struct ComponentRotateAction final : ActionBase
 	void Execute() override
 	{
 		FVector translation;
-		FVector scale;
+		FVector scale3D;
 		float pitch;
 		float yaw;
 		float roll;
-		MatrixDecompose(Component->CachedParentToWorld, translation, scale, pitch, yaw, roll);
+		MatrixDecompose(Component->CachedParentToWorld, translation, scale3D, pitch, yaw, roll);
 		Component->CachedParentToWorld = IdentityMatrix;
 		Component->Translation = translation;
-		Component->Scale = 1;
-		Component->Scale3D = scale;
+		scale3D.X /= Component->Scale;
+		scale3D.Y /= Component->Scale;
+		scale3D.Z /= Component->Scale;
+		Component->Scale3D = scale3D;
 		Component->SetRotation(Rotator);
 		pitch = UnrealRotationUnitsToRadians(Rotator.Pitch);
 		yaw = UnrealRotationUnitsToRadians(Rotator.Yaw);
 		roll = UnrealRotationUnitsToRadians(Rotator.Roll);
-		Component->CachedParentToWorld = MatrixCompose(translation, scale, pitch, yaw, roll);
+		Component->CachedParentToWorld = MatrixCompose(translation, scale3D, pitch, yaw, roll);
 	}
 };

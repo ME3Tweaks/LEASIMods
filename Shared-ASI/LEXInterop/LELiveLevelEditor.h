@@ -184,7 +184,10 @@ private:
 					rotation = FRotator{ RadiansToUnrealRotationUnits(pitch_rad),
 										 RadiansToUnrealRotationUnits(yaw_rad),
 										 RadiansToUnrealRotationUnits(roll_rad) };
-					scale = 1;
+					scale = smc->Scale;
+					scale3D.X /= scale;
+					scale3D.Y /= scale;
+					scale3D.Z /= scale;
 				}
 			}
 			else
@@ -274,7 +277,12 @@ private:
 		if (SelectedActor) {
 			if (IsA<AStaticMeshCollectionActor>(SelectedActor))
 			{
-				return; //can only do scale3D on CollectionActor components
+				const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(SelectedActor);
+				const auto compC = smca->Components.Data[SelectedComponentIndex];
+				if (compC && compC->IsA(UStaticMeshComponent::StaticClass()))
+				{
+					InteropActionQueue.push(new ComponentScaleAction(reinterpret_cast<UStaticMeshComponent*>(compC), scale));
+				}
 			}
 			InteropActionQueue.push(new ScaleAction(SelectedActor, scale));
 		}
