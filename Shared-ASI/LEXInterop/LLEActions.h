@@ -55,3 +55,78 @@ struct RotateAction final : ActionBase
 		SetRotationWrapper(Actor, Rotator);
 	}
 };
+
+struct ComponentMoveAction final : ActionBase
+{
+	UStaticMeshComponent* Component;
+	FVector Vector;
+
+	ComponentMoveAction(UStaticMeshComponent* component, const FVector vector) : Component(component), Vector(vector) {}
+
+	void Execute() override
+	{
+		FVector translation;
+		FVector scale;
+		float pitch;
+		float yaw;
+		float roll;
+		MatrixDecompose(Component->CachedParentToWorld, translation, scale, pitch, yaw, roll);
+		Component->CachedParentToWorld = IdentityMatrix;
+		Component->Rotation = FRotator{ RadiansToUnrealRotationUnits(pitch), RadiansToUnrealRotationUnits(yaw), RadiansToUnrealRotationUnits(roll) };
+		Component->Scale = 1;
+		Component->Scale3D = scale;
+		Component->SetTranslation(Vector);
+		Component->CachedParentToWorld = MatrixCompose(Vector, scale, pitch, yaw, roll);
+	}
+};
+
+struct ComponentScale3DAction final : ActionBase
+{
+	UStaticMeshComponent* Component;
+	FVector ScaleVector;
+
+	ComponentScale3DAction(UStaticMeshComponent* component, const FVector scaleVector) : Component(component), ScaleVector(scaleVector) {}
+
+	void Execute() override
+	{
+		FVector translation;
+		FVector scale;
+		float pitch;
+		float yaw;
+		float roll;
+		MatrixDecompose(Component->CachedParentToWorld, translation, scale, pitch, yaw, roll);
+		Component->CachedParentToWorld = IdentityMatrix;
+		Component->Translation = translation;
+		Component->Rotation = FRotator{ RadiansToUnrealRotationUnits(pitch), RadiansToUnrealRotationUnits(yaw), RadiansToUnrealRotationUnits(roll) };
+		Component->Scale = 1;
+		Component->SetScale3D(ScaleVector);
+		Component->CachedParentToWorld = MatrixCompose(translation, ScaleVector, pitch, yaw, roll);
+	}
+};
+
+struct ComponentRotateAction final : ActionBase
+{
+	UStaticMeshComponent* Component;
+	FRotator Rotator;
+
+	ComponentRotateAction(UStaticMeshComponent* component, const FRotator rotator) : Component(component), Rotator(rotator) {}
+
+	void Execute() override
+	{
+		FVector translation;
+		FVector scale;
+		float pitch;
+		float yaw;
+		float roll;
+		MatrixDecompose(Component->CachedParentToWorld, translation, scale, pitch, yaw, roll);
+		Component->CachedParentToWorld = IdentityMatrix;
+		Component->Translation = translation;
+		Component->Scale = 1;
+		Component->Scale3D = scale;
+		Component->SetRotation(Rotator);
+		pitch = UnrealRotationUnitsToRadians(Rotator.Pitch);
+		yaw = UnrealRotationUnitsToRadians(Rotator.Yaw);
+		roll = UnrealRotationUnitsToRadians(Rotator.Roll);
+		Component->CachedParentToWorld = MatrixCompose(translation, scale, pitch, yaw, roll);
+	}
+};

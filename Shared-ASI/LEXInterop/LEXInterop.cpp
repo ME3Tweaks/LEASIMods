@@ -32,7 +32,7 @@
 
 #pragma comment(lib, "shlwapi.lib")
 
-SPI_PLUGINSIDE_SUPPORT(GAMETAG L" LEX Interop", L"ME3Tweaks", L"2.0.0", SPI_GAME, SPI_VERSION_ANY);
+SPI_PLUGINSIDE_SUPPORT(GAMETAG L" LEX Interop", L"ME3Tweaks", L"2.1.0", SPI_GAME, SPI_VERSION_ANY);
 SPI_PLUGINSIDE_POSTLOAD;
 SPI_PLUGINSIDE_ASYNCATTACH;
 
@@ -76,6 +76,18 @@ FString* TLKLookup_hook(void* param1, FString* outString, int stringID, BOOL bPa
 }
 
 #pragma endregion TLKLookup
+
+
+// Note: Doesn't work. Game doesn't show notification
+void sendInGameNotification(wchar_t* shortMessage, const int tlkIDToUse)
+{
+	const auto bioWorldInfo = reinterpret_cast<ABioWorldInfo*>(FindObjectOfType(ABioWorldInfo::StaticClass()));
+	if (bioWorldInfo && bioWorldInfo->EventNotifier)
+	{
+		tlkOverride.insert_or_assign(tlkIDToUse, FString(shortMessage));
+		bioWorldInfo->EventNotifier->AddNotice(1, 3, 10000, 2, tlkIDToUse, L"Level Up!", 0, 0, 0);
+	}
+}
 #endif
 
 // ProcessEvent hook
@@ -112,18 +124,6 @@ void ProcessEvent_hook(UObject* Context, UFunction* Function, void* Parms, void*
 		// Some of the process events might handle the result. In this instance we do not want to call the original
 		// function
 		ProcessEvent_orig(Context, Function, Parms, Result);
-	}
-}
-
-
-// Note: Doesn't work. Game doesn't show notification
-void sendInGameNotification(wchar_t* shortMessage, const int tlkIDToUse)
-{
-	const auto bioWorldInfo = reinterpret_cast<ABioWorldInfo*>(FindObjectOfType(ABioWorldInfo::StaticClass()));
-	if (bioWorldInfo && bioWorldInfo->EventNotifier)
-	{
-		tlkOverride.insert_or_assign(tlkIDToUse, FString(shortMessage));
-		bioWorldInfo->EventNotifier->AddNotice(1, 3, 10000, 2, tlkIDToUse, L"Level Up!", 0, 0, 0);
 	}
 }
 

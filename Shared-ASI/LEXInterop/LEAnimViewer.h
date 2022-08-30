@@ -10,12 +10,10 @@ typedef bool (*tIsWindowFocused)();
 
 class LEAnimViewer
 {
-#ifdef GAMELE1
 	// Memory pre-allocated for use with passing to kismet, since FString doesn't copy it
 	static wchar_t ActorFullMemoryPath[1024];
 	static std::wstring ActorMemoryPath;
 	static std::wstring ActorPackageFile;
-#endif
 
 	// BioWorldInfo internal native
 	static tIsWindowFocused IsWindowFocused;
@@ -37,7 +35,13 @@ class LEAnimViewer
 		const auto InterfacePtr = SharedData::SPIInterfacePtr;
 		if (!IsWindowFocused)
 		{
+#if defined GAMELE1
 			INIT_POSTHOOK(IsWindowFocused, /*"48 83 ec 28 48*/ "8b 05 5d 3f c2 00 48 85 c0 74 2c 48 8b 88 c8 07 00 00 48 85 c9 74 20 48 8b 89 68 01 00 00");
+#elif defined GAMELE2
+			INIT_POSTHOOK(IsWindowFocused, /*"48 83 ec 28 48*/ "8b 05 2d bf c5 00 48 85 c0 74 29 48 8b 88 a0 07 00 00");
+#elif defined GAMELE3
+			INIT_POSTHOOK(IsWindowFocused, /*"48 83 ec 28 48*/ "8b 05 e5 f0 dd 00 48 85 c0 74 2c 48 8b 88 a0 07 00 00");
+#endif
 		}
 		AllowPausing = allow;
 		return true;
@@ -68,8 +72,7 @@ public:
 			AllowWindowPausing(false);
 			return true;
 		}
-
-#ifdef GAMELE1
+		
 		if (stringStartsWith("ANIMV_CHANGE_PAWN ", command))
 		{
 			// Test code.
@@ -97,7 +100,6 @@ public:
 			return true;
 
 		}
-#endif
 
 		return false;
 	}
@@ -111,7 +113,7 @@ public:
 			// Make sure the variables are set
 			//SetSequenceString(static_cast<USequenceOp*>(Context), L"Type", LEAnimViewer::ActorFullMemoryPath);
 
-			const auto spGame = static_cast<ABioSPGame*>(FindObjectOfType(ABioSPGame::StaticClass()));
+			const auto spGame = static_cast<ASFXGame*>(FindObjectOfType(ASFXGame::StaticClass()));
 			spGame->ServerOptions = FString(ActorFullMemoryPath);
 			auto t = "";
 			//FVector v = FVector();
@@ -157,8 +159,6 @@ bool LEAnimViewer::AllowPausing = false;
 tIsWindowFocused LEAnimViewer::IsWindowFocused = nullptr;
 tIsWindowFocused LEAnimViewer::IsWindowFocused_orig = nullptr;
 
-#ifdef GAMELE1
 wchar_t LEAnimViewer::ActorFullMemoryPath[1024];
 std::wstring LEAnimViewer::ActorMemoryPath = L"BIOA_NOR_C.HMM.hench_pilot";
 std::wstring LEAnimViewer::ActorPackageFile = L"BIOA_NOR10_01_DS1";
-#endif

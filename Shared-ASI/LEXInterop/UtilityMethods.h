@@ -11,8 +11,8 @@
 // Checks if a string starts with another
 bool startsWith(const char* pre, const char* str)
 {
-	size_t lenpre = strlen(pre),
-		lenstr = strlen(str);
+	const size_t lenpre = strlen(pre);
+	const size_t lenstr = strlen(str);
 	return lenstr < lenpre ? false : memcmp(pre, str, lenpre) == 0;
 }
 
@@ -155,9 +155,18 @@ void SendStringToLEX(const wstring& wstr, const UINT timeout = 100) {
 	if (const auto handle = FindWindow(nullptr, L"Legendary Explorer"))
 	{
 		constexpr unsigned long SENT_FROM_LE1 = 0x02AC00C7;
+		constexpr unsigned long SENT_FROM_LE2 = 0x02AC00C6;
+		constexpr unsigned long SENT_FROM_LE3 = 0x02AC00C5;
 		COPYDATASTRUCT cds;
 		ZeroMemory(&cds, sizeof(COPYDATASTRUCT));
+
+#if defined GAMELE1
 		cds.dwData = SENT_FROM_LE1;
+#elif defined GAMELE2
+		cds.dwData = SENT_FROM_LE2;
+#elif defined GAMELE3
+		cds.dwData = SENT_FROM_LE3;
+#endif
 		cds.cbData = (wstr.length() + 1) * sizeof(wchar_t);
 		cds.lpData = PVOID(wstr.c_str());
 		SendMessageTimeout(handle, WM_COPYDATA, NULL, reinterpret_cast<LPARAM>(&cds), 0, timeout, nullptr);

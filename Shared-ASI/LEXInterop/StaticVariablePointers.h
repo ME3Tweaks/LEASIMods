@@ -20,12 +20,13 @@ private:
 public:
 	static UWorld* GWorld() {
 		if (GWorldPtr) return GWorldPtr;
-#ifdef GAMELE1
-		constexpr auto byte_pattern = "48 8b 0d 6b 2b 47 01 e8 2e 63 30 00 0f 28 f8 48 8b 0d 5c 2b 47 01";
+		constexpr auto byte_pattern =
+#ifdef GAMELE1 
+		"48 8b 0d 6b 2b 47 01 e8 2e 63 30 00 0f 28 f8 48 8b 0d 5c 2b 47 01";
 #elif defined(GAMELE2)
-#error Find GWorld for LE2!
+		 "48 8b 0d e6 a7 64 01 e8 a1 51 7b 00";
 #elif defined(GAMELE3)
-#error Find GWorld for LE3!
+		 "48 8b 0d ee 33 78 01 e8 21 f3 78 00";
 #endif
 		GWorldPtr = static_cast<UWorld*>(findAddressLeaMov(SharedData::SPIInterfacePtr, "GWorld", byte_pattern));
 		return GWorldPtr;

@@ -61,7 +61,13 @@ static BOOL SetRotationWrapper(AActor* actor, const FRotator& rotation)
 
 		void* moveActorMoveableCheck = nullptr;
 
+#ifdef GAMELE1 
 		INIT_FIND_PATTERN(moveActorMoveableCheck, "e0 4c 8b 8d 18 04 00 00 48 8b b5 28 04 00 00")
+#elif defined(GAMELE2)
+		INIT_FIND_PATTERN(moveActorMoveableCheck, "dc 4c 8b 8d 68 04 00 00 48 8b b5 78 04 00 00")
+#elif defined(GAMELE3)
+		INIT_FIND_PATTERN(moveActorMoveableCheck, "dc 4c 8b 8d 68 04 00 00 48 8b b5 78 04 00 00")
+#endif
 
 		constexpr BYTE jumpZero[] = { 0x0 }; // set JNZ to "jump" zero bytes
 		PatchMemory(moveActorMoveableCheck, jumpZero, 1);

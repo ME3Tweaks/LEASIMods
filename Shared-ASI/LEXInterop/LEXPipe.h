@@ -31,19 +31,17 @@ void ProcessCommand(char str[1024], DWORD dword)
 	//if (!handled) handled = LE1AnimViewer::HandleCommand(str);
 }
 
-HANDLE hPipe;
-
 void HandlePipe()
 {
 	// Setup the LEX <-> LE game pipe
-	char buffer[1024];
+	char buffer[1024]{};
 	DWORD dwRead;
-
-#ifdef GAMELE1
+	HANDLE hPipe;
+#if defined GAMELE1
 	hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\LEX_LE1_COMM_PIPE"),
-#elif GAMELE2
+#elif defined GAMELE2
 	hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\LEX_LE2_COMM_PIPE"),
-#elif GAMELE3
+#elif defined GAMELE3
 	hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\LEX_LE3_COMM_PIPE"),
 #endif
 		PIPE_ACCESS_INBOUND,
@@ -55,23 +53,27 @@ void HandlePipe()
 		nullptr);
 
 	if (hPipe != nullptr)
-		writeln("PIPED UP");
-	else
-		writeln("COULD NOT CREATE INTEROP PIPE");
-
-	while (hPipe != INVALID_HANDLE_VALUE)
 	{
-		if (ConnectNamedPipe(hPipe, nullptr) != FALSE)   // wait for someone to connect to the pipe
-		{
-			while (ReadFile(hPipe, buffer, sizeof(buffer) - 1, &dwRead, NULL) != FALSE)
-			{
-				/* add terminating zero */
-				buffer[dwRead] = '\0';
-				ProcessCommand(buffer, dwRead);
-			}
-		}
+		writeln("PIPED UP");
 
-		//writeln("FLUSHING THE PIPES AWAY");
-		DisconnectNamedPipe(hPipe);
+		while (hPipe != INVALID_HANDLE_VALUE)
+		{
+			if (ConnectNamedPipe(hPipe, nullptr) != FALSE)   // wait for someone to connect to the pipe
+			{
+				while (ReadFile(hPipe, buffer, sizeof buffer - 1, &dwRead, nullptr) != FALSE)
+				{
+					/* add terminating zero */
+					buffer[dwRead] = '\0';
+					ProcessCommand(buffer, dwRead);
+				}
+			}
+
+			//writeln("FLUSHING THE PIPES AWAY");
+			DisconnectNamedPipe(hPipe);
+		}
+	}
+	else
+	{
+		writeln("COULD NOT CREATE INTEROP PIPE");
 	}
 }

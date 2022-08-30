@@ -42,7 +42,7 @@ public:
 				{
 					// What happens when you don't have an interpolation method
 					std::wstringstream ss;
-					ss << "PATHFINDING_GPS PLAYERLOC=" << playerController->Pawn->Location.X << "," << playerController->Pawn->Location.Y << "," << playerController->Pawn->Location.Z;
+					ss << "PATHFINDING_GPS PLAYERLOC=" << playerController->Pawn->LOCATION.X << "," << playerController->Pawn->LOCATION.Y << "," << playerController->Pawn->LOCATION.Z;
 					SendStringToLEX(ss.str());
 
 					std::wstringstream ss2;

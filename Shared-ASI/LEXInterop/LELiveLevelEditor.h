@@ -14,6 +14,7 @@ public:
 	static bool IsLLEActive;
 	static TArray<UObject*> Actors;
 	static AActor* SelectedActor;
+	static int SelectedComponentIndex; //for editing a component in a CollectionActor. Ignored if SelectedActor is not a Collectionactor
 	static bool DrawLineToSelected;
 	static FColor TraceLineColor;
 	static float CoordinateScale;
@@ -33,55 +34,34 @@ private:
 			const auto obj = objArray[j];
 			if (obj && obj->IsA(actorClass))
 			{
-				const auto actor = static_cast<AActor*>(obj);
-				if (actor) {
-					if (IsDefaultObject(actor) || IsA<ABioWorldInfo>(actor))// || actor->bStatic || !actor->bMovable)
-					{
-						continue;
-					}
-					Actors.Add(actor); // We will send them to LEX after we bundle it all up
+				const auto actor = reinterpret_cast<AActor*>(obj);
+				if (IsDefaultObject(actor) || IsA<ABioWorldInfo>(actor))// || actor->bStatic || !actor->bMovable)
+				{
+					continue;
 				}
+				Actors.Add(actor); // We will send them to LEX after we bundle it all up
 			}
 		}
 
 		// This originally used to count first but that was removed for other design issues
 
 		// Tell LEX we're about to send over an actor list, so it can clear it and be ready for new data.
-		SendStringToLEX(L"LIVELEVELEDITOR ACTORDUMPSTART", 100);
+		SendStringToLEX(L"LIVELEVELEDITOR ACTORDUMPSTART");
 
 		// Send the actor information to LEX
-		int numSent = 0;
 		for (int i = 0; i < Actors.Count; i++)
 		{
 			if (Actors.Data[i]->IsA(actorClass))
 			{
-				const auto actor = static_cast<AActor*>(Actors.Data[i]);
-
-				//if (actor->IsA(AStaticLightCollectionActor::StaticClass()))
-				//{
-				//	auto slca = static_cast<AStaticLightCollectionActor*>(actor);
-				//	for (int i = 0; i < slca->Components.Count; i++)
-				//	{
-				//		SetSLCAComponentPosition(slca, i, 0, 0, 0);
-				//	}
-				//}
-
-				//if (actor->IsA(AStaticMeshCollectionActor::StaticClass()))
-				//{
-				//	auto slca = static_cast<AStaticMeshCollectionActor*>(actor);
-				//	for (int i = 0; i < slca->Components.Count; i++)
-				//	{
-				//		SetSLCAComponentPosition(slca, i, 0, 0, 0);
-				//	}
-				//}
+				const auto actor = reinterpret_cast<AActor*>(Actors.Data[i]);
 
 				// String interps in C++ :/
-				std::wstringstream ss2; // This is not declared outside the loop cause otherwise it carries forward
+				std::wostringstream ss2; // This is not declared outside the loop cause otherwise it carries forward
 				ss2 << L"LIVELEVELEDITOR ACTORINFO ";
 
 				const auto name = actor->Name.GetName();
-				ss2 << GetContainingMapName(actor);
-				ss2 << L':' << name;
+				ss2 << L"MAP=" << GetContainingMapName(actor);
+				ss2 << L":ACTOR=" << name;
 				const auto index = actor->Name.Number;
 				if (index > 0)
 				{
@@ -100,9 +80,30 @@ private:
 					ss2 << L":TAG=" << tag;
 				}
 
-				numSent++;
+				if (actor->IsA(AStaticMeshCollectionActor::StaticClass()))
+				{
+					const auto strStartPos = ss2.tellp();
+					const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(actor);
+					for (int j = 0; j < smca->Components.Count; j++)
+					{
+						const auto component = smca->Components(j);
+						if (IsA<UStaticMeshComponent>(component))
+						{
+							//everything up to TAG is the same for every component, so just reset position and overwrite
+							ss2.seekp(strStartPos);
+							ss2 << L":COMPNAME=" << component->GetName();
+							ss2 << L":COMPIDX=" << j;
+							ss2 << L'\0';
+							//This will send the entire string, which may contain garbage on the end if, for example, a previous component had a longer name.
+							//This isn't a problem, since we explicitly put a null at the end, and LEX reads until a null.
+							SendStringToLEX(ss2.str());
+						}
+					}
+					continue;
+				}
+				
 				ss2 << L'\0';
-				SendStringToLEX(ss2.str(), 100);
+				SendStringToLEX(ss2.str());
 			}
 		}
 
@@ -113,7 +114,12 @@ private:
 	// Gets an actor with the specified full name from the specified map file in memory
 	// This should probably be invalidated or always found new
 	// Maybe enumerate the actors list...?
-	static void UpdateSelectedActor(const char* mapName, const char* actorName) {
+	static void UpdateSelectedActor(char* selectionStr) {
+		const auto delims = " ";
+		char* nextToken;
+		const char* mapName = strtok_s(selectionStr, delims, &nextToken);
+		const char* actorName = strtok_s(nullptr, delims, &nextToken);
+
 		//writeln(L"Selecting act for: %hs", actorName);
 		const auto objCount = UObject::GObjObjects()->Count;
 		const auto objArray = UObject::GObjObjects()->Data;
@@ -131,32 +137,75 @@ private:
 				//writeln(L"%hs", name);
 				if (strcmp(actorName, name) == 0)
 				{
+					if (IsA<AStaticMeshCollectionActor>(obj))
+					{
+						const int compIdx = (int)strtol(nextToken, &nextToken, 10);
+						const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(obj);
+						if (compIdx < 0 || compIdx >= smca->Components.Count)
+						{
+							goto NotFound;
+						}
+						SelectedComponentIndex = compIdx;
+					}
+					else
+					{
+						SelectedComponentIndex = -1;
+					}
+					SelectedActor = reinterpret_cast<AActor*>(obj);
 					SendStringToLEX(L"LIVELEVELEDITOR ACTORSELECTED"); // We have selected an actor
-					SelectedActor = static_cast<AActor*>(obj);
 					return;
 				}
 			}
 		}
-
+	NotFound:
 		SendStringToLEX(L"LIVELEVELEDITOR ACTORSELECTED"); // We didn't find an actor but we finished the selection routine.
 		SelectedActor = nullptr; // Didn't find!
+		SelectedComponentIndex = -1;
 	}
 
 	static void SendActorData()
 	{
 		if (SelectedActor) {
+			FVector translation{};
+			float scale{};
+			FVector scale3D{};
+			FRotator rotation{};
+			if (IsA<AStaticMeshCollectionActor>(SelectedActor))
+			{
+				const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(SelectedActor);
+				const auto compC = smca->Components.Data[SelectedComponentIndex];
+				if (compC && compC->IsA(UStaticMeshComponent::StaticClass()))
+				{
+					const auto smc = reinterpret_cast<UStaticMeshComponent*>(compC);
+					float pitch_rad;
+					float yaw_rad;
+					float roll_rad;
+					MatrixDecompose(smc->CachedParentToWorld, translation, scale3D, pitch_rad, yaw_rad, roll_rad);
+					rotation = FRotator{ RadiansToUnrealRotationUnits(pitch_rad),
+										 RadiansToUnrealRotationUnits(yaw_rad),
+										 RadiansToUnrealRotationUnits(roll_rad) };
+					scale = 1;
+				}
+			}
+			else
+			{
+				translation = SelectedActor->LOCATION;
+				scale = SelectedActor->DrawScale;
+				scale3D = SelectedActor->DrawScale3D;
+				rotation = SelectedActor->Rotation;
+			}
 			std::wstringstream ss1;
-			ss1 << L"LIVELEVELEDITOR ACTORLOC " << SelectedActor->LOCATION.X << " " << SelectedActor->LOCATION.Y << " " << SelectedActor->LOCATION.Z;
+			ss1 << L"LIVELEVELEDITOR ACTORLOC " << translation.X << " " << translation.Y << " " << translation.Z;
 			ss1 << L'\0';
 			SendStringToLEX(ss1.str());
 
 			std::wstringstream ss2;
-			ss2 << L"LIVELEVELEDITOR ACTORROT " << SelectedActor->Rotation.Pitch << " " << SelectedActor->Rotation.Yaw << " " << SelectedActor->Rotation.Roll;
+			ss2 << L"LIVELEVELEDITOR ACTORROT " << rotation.Pitch << " " << rotation.Yaw << " " << rotation.Roll;
 			ss2 << L'\0';
 			SendStringToLEX(ss2.str());
 
 			std::wstringstream ss3;
-			ss3 << L"LIVELEVELEDITOR ACTORSCALE " << SelectedActor->DrawScale << " " << SelectedActor->DrawScale3D.X << " " << SelectedActor->DrawScale3D.Y << " " << SelectedActor->DrawScale3D.Z;
+			ss3 << L"LIVELEVELEDITOR ACTORSCALE " << scale << " " << scale3D.X << " " << scale3D.Y << " " << scale3D.Z;
 			ss3 << L'\0';
 			SendStringToLEX(ss3.str());
 		}
@@ -165,36 +214,19 @@ private:
 	static void SetActorPosition(const float x, const float y, const float z)
 	{
 		if (SelectedActor) {
-			InteropActionQueue.push(new MoveAction(SelectedActor, FVector{x, y, z}));
-		}
-	}
-
-	static void SetSLCAComponentPosition(const AStaticLightCollectionActor* smca, const int componentIdx, float x, float y, float z)
-	{
-		if (smca)
-		{
-			const auto compC = smca->Components.Data[componentIdx];
-			if (compC && compC->IsA(ULightComponent::StaticClass()))
+			if (IsA<AStaticMeshCollectionActor>(SelectedActor))
 			{
-				// Todo: This (UI needs sub-component selector)
-				const auto comp = static_cast<ULightComponent*>(compC);
-				comp->WorldToLight = FMatrix();
-				comp->LightToWorld = FMatrix();
+				const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(SelectedActor);
+				const auto compC = smca->Components.Data[SelectedComponentIndex];
+				if (compC && compC->IsA(UStaticMeshComponent::StaticClass()))
+				{
+					InteropActionQueue.push(new ComponentMoveAction(reinterpret_cast<UStaticMeshComponent*>(compC), FVector{ x, y, z }));
+				}
+
 			}
-		}
-	}
-
-	static void SetSLCAComponentPosition(const AStaticMeshCollectionActor* smca, const int componentIdx, float x, float y, float z)
-	{
-		if (smca)
-		{
-			const auto compC = smca->Components.Data[componentIdx];
-			if (compC && compC->IsA(UStaticMeshComponent::StaticClass()))
+			else
 			{
-				// Todo: This (UI needs sub-component selector)
-				const auto comp = static_cast<UStaticMeshComponent*>(compC);
-				comp->CachedParentToWorld = FMatrix();
-				comp->LocalToWorld = FMatrix();
+				InteropActionQueue.push(new MoveAction(SelectedActor, FVector{ x, y, z }));
 			}
 		}
 	}
@@ -202,20 +234,48 @@ private:
 	static void SetActorRotation(const int pitch, const int yaw, const int roll)
 	{
 		if (SelectedActor) {
-			InteropActionQueue.push(new RotateAction(SelectedActor, FRotator{ pitch, yaw, roll }));
+			if (IsA<AStaticMeshCollectionActor>(SelectedActor))
+			{
+				const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(SelectedActor);
+				const auto compC = smca->Components.Data[SelectedComponentIndex];
+				if (compC && compC->IsA(UStaticMeshComponent::StaticClass()))
+				{
+					InteropActionQueue.push(new ComponentRotateAction(reinterpret_cast<UStaticMeshComponent*>(compC), FRotator{pitch, yaw, roll}));
+				}
+			}
+			else
+			{
+				InteropActionQueue.push(new RotateAction(SelectedActor, FRotator{ pitch, yaw, roll }));
+			}
 		}
 	}
 
 	static void SetActorDrawScale3D(const float scaleX, const float scaleY, const float scaleZ)
 	{
 		if (SelectedActor) {
-			InteropActionQueue.push(new Scale3DAction(SelectedActor, FVector{ scaleX, scaleY, scaleZ }));
+			if (IsA<AStaticMeshCollectionActor>(SelectedActor))
+			{
+				const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(SelectedActor);
+				const auto compC = smca->Components.Data[SelectedComponentIndex];
+				if (compC && compC->IsA(UStaticMeshComponent::StaticClass()))
+				{
+					InteropActionQueue.push(new ComponentScale3DAction(reinterpret_cast<UStaticMeshComponent*>(compC), FVector{ scaleX, scaleY, scaleZ }));
+				}
+			}
+			else
+			{
+				InteropActionQueue.push(new Scale3DAction(SelectedActor, FVector{ scaleX, scaleY, scaleZ }));
+			}
 		}
 	}
 
 	static void SetActorDrawScale(const float scale)
 	{
 		if (SelectedActor) {
+			if (IsA<AStaticMeshCollectionActor>(SelectedActor))
+			{
+				return; //can only do scale3D on CollectionActor components
+			}
 			InteropActionQueue.push(new ScaleAction(SelectedActor, scale));
 		}
 	}
@@ -247,9 +307,18 @@ public:
 			{
 				hud->FlushPersistentDebugLines(); // Clear it out
 				if (DrawLineToSelected) {
-
-					hud->DrawDebugLine(SharedData::cachedPlayerPosition, SelectedActor->LOCATION, TraceLineColor.R, TraceLineColor.G, TraceLineColor.B, TRUE);
-					hud->DrawDebugCoordinateSystem(SelectedActor->Location, FRotator(), CoordinateScale, TRUE);
+					auto line_end = SelectedActor->LOCATION;
+					if (SelectedComponentIndex >= 0 && IsA<AStaticMeshCollectionActor>(SelectedActor))
+					{
+						const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(SelectedActor);
+						const auto comp = smca->Components(SelectedComponentIndex);
+						if (IsA<UStaticMeshComponent>(comp))
+						{
+							line_end = static_cast<FVector>(reinterpret_cast<UStaticMeshComponent*>(comp)->CachedParentToWorld.WPlane);
+						}
+					}
+					hud->DrawDebugLine(SharedData::cachedPlayerPosition, line_end, TraceLineColor.R, TraceLineColor.G, TraceLineColor.B, TRUE);
+					hud->DrawDebugCoordinateSystem(line_end, FRotator(), CoordinateScale, TRUE);
 				}
 			}
 		}
@@ -301,11 +370,7 @@ public:
 
 		if (IsCmd(&command, "LLE_SELECT_ACTOR "))
 		{
-			const auto delims = " ";
-			char* nextToken;
-			const char* mapName = strtok_s(command, delims, &nextToken);
-			const char* objName = strtok_s(nullptr, delims, &nextToken);
-			UpdateSelectedActor(mapName, objName);
+			UpdateSelectedActor(command);
 			return true;
 		}
 
@@ -360,6 +425,7 @@ public:
 // Static variable initialization
 TArray<UObject*> LELiveLevelEditor::Actors = TArray<UObject*>();
 AActor* LELiveLevelEditor::SelectedActor = nullptr;
+int LELiveLevelEditor::SelectedComponentIndex = -1;
 bool LELiveLevelEditor::DrawLineToSelected = true;
 bool LELiveLevelEditor::IsLLEActive = false; 
 FColor LELiveLevelEditor::TraceLineColor = FColor{0,255,255,255}; //B, G, R, A
