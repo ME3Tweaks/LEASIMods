@@ -186,7 +186,10 @@ private:
 										 RadiansToUnrealRotationUnits(yaw_rad),
 										 RadiansToUnrealRotationUnits(roll_rad) };
 					scale = smc->Scale;
-					scale3D /= scale;
+					if (scale != 0)
+					{
+						scale3D /= scale;
+					}
 				}
 			}
 			else
