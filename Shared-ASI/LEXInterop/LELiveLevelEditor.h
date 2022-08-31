@@ -1,7 +1,6 @@
 #pragma once
 #include <ostream>
 
-
 #include "../ME3Tweaks/ME3TweaksHeader.h"
 #include "../ConsoleCommandParsing.h"
 #include "LLEActions.h"
@@ -18,11 +17,13 @@ public:
 	static bool DrawLineToSelected;
 	static FColor TraceLineColor;
 	static float CoordinateScale;
+	
 private:
 	static void DumpActors()
 	{
 		IsLLEActive = true;
 		SelectedActor = nullptr; // We deselect the actor
+		SelectedComponentIndex = -1;
 		const auto objCount = UObject::GObjObjects()->Count;
 		const auto objArray = UObject::GObjObjects()->Data;
 
@@ -185,9 +186,7 @@ private:
 										 RadiansToUnrealRotationUnits(yaw_rad),
 										 RadiansToUnrealRotationUnits(roll_rad) };
 					scale = smc->Scale;
-					scale3D.X /= scale;
-					scale3D.Y /= scale;
-					scale3D.Z /= scale;
+					scale3D /= scale;
 				}
 			}
 			else
@@ -308,19 +307,22 @@ public:
 			if (hud != nullptr)
 			{
 				hud->FlushPersistentDebugLines(); // Clear it out
-				if (DrawLineToSelected) {
-					auto line_end = SelectedActor->LOCATION;
-					if (SelectedComponentIndex >= 0 && IsA<AStaticMeshCollectionActor>(SelectedActor))
-					{
-						const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(SelectedActor);
-						const auto comp = smca->Components(SelectedComponentIndex);
-						if (IsA<UStaticMeshComponent>(comp))
+				if (IsLLEActive)
+				{
+					if (DrawLineToSelected) {
+						auto line_end = SelectedActor->LOCATION;
+						if (SelectedComponentIndex >= 0 && IsA<AStaticMeshCollectionActor>(SelectedActor))
 						{
-							line_end = static_cast<FVector>(reinterpret_cast<UStaticMeshComponent*>(comp)->CachedParentToWorld.WPlane);
+							const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(SelectedActor);
+							const auto comp = smca->Components(SelectedComponentIndex);
+							if (IsA<UStaticMeshComponent>(comp))
+							{
+								line_end = static_cast<FVector>(reinterpret_cast<UStaticMeshComponent*>(comp)->CachedParentToWorld.WPlane);
+							}
 						}
+						hud->DrawDebugLine(SharedData::cachedPlayerPosition, line_end, TraceLineColor.R, TraceLineColor.G, TraceLineColor.B, TRUE);
+						hud->DrawDebugCoordinateSystem(line_end, FRotator(), CoordinateScale, TRUE);
 					}
-					hud->DrawDebugLine(SharedData::cachedPlayerPosition, line_end, TraceLineColor.R, TraceLineColor.G, TraceLineColor.B, TRUE);
-					hud->DrawDebugCoordinateSystem(line_end, FRotator(), CoordinateScale, TRUE);
 				}
 			}
 		}
@@ -335,6 +337,13 @@ public:
 		{
 			// We can receive this command, so we are ready
 			SendStringToLEX(L"LIVELEVELEDITOR READY");
+			return true;
+		}
+		if (IsCmd(&command, "LLE_DEACTIVATE"))
+		{
+			IsLLEActive = false;
+			SelectedActor = nullptr;
+			SelectedComponentIndex = -1;
 			return true;
 		}
 

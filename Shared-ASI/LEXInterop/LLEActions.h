@@ -73,10 +73,7 @@ struct ComponentMoveAction final : ActionBase
 		MatrixDecompose(Component->CachedParentToWorld, translation, scale3D, pitch, yaw, roll);
 		Component->CachedParentToWorld = IdentityMatrix;
 		Component->Rotation = FRotator{ RadiansToUnrealRotationUnits(pitch), RadiansToUnrealRotationUnits(yaw), RadiansToUnrealRotationUnits(roll) };
-		scale3D.X /= Component->Scale;
-		scale3D.Y /= Component->Scale;
-		scale3D.Z /= Component->Scale;
-		Component->Scale3D = scale3D;
+		Component->Scale3D = scale3D / Component->Scale;
 		Component->SetTranslation(Vector);
 		Component->CachedParentToWorld = MatrixCompose(Vector, scale3D, pitch, yaw, roll);
 	}
@@ -100,11 +97,10 @@ struct ComponentScaleAction final : ActionBase
 		Component->CachedParentToWorld = IdentityMatrix;
 		Component->Translation = translation;
 		Component->Rotation = FRotator{ RadiansToUnrealRotationUnits(pitch), RadiansToUnrealRotationUnits(yaw), RadiansToUnrealRotationUnits(roll) };
-		scale3D.X /= Component->Scale;
-		scale3D.Y /= Component->Scale;
-		scale3D.Z /= Component->Scale;
+		scale3D /= Component->Scale;
 		Component->Scale3D = scale3D;
 		Component->SetScale(Scale);
+		scale3D *= Scale;
 		Component->CachedParentToWorld = MatrixCompose(translation, scale3D, pitch, yaw, roll);
 	}
 };
@@ -128,7 +124,7 @@ struct ComponentScale3DAction final : ActionBase
 		Component->Translation = translation;
 		Component->Rotation = FRotator{ RadiansToUnrealRotationUnits(pitch), RadiansToUnrealRotationUnits(yaw), RadiansToUnrealRotationUnits(roll) };
 		Component->SetScale3D(ScaleVector);
-		Component->CachedParentToWorld = MatrixCompose(translation, ScaleVector, pitch, yaw, roll);
+		Component->CachedParentToWorld = MatrixCompose(translation, ScaleVector * Component->Scale, pitch, yaw, roll);
 	}
 };
 
@@ -149,10 +145,7 @@ struct ComponentRotateAction final : ActionBase
 		MatrixDecompose(Component->CachedParentToWorld, translation, scale3D, pitch, yaw, roll);
 		Component->CachedParentToWorld = IdentityMatrix;
 		Component->Translation = translation;
-		scale3D.X /= Component->Scale;
-		scale3D.Y /= Component->Scale;
-		scale3D.Z /= Component->Scale;
-		Component->Scale3D = scale3D;
+		Component->Scale3D = scale3D / Component->Scale;
 		Component->SetRotation(Rotator);
 		pitch = UnrealRotationUnitsToRadians(Rotator.Pitch);
 		yaw = UnrealRotationUnitsToRadians(Rotator.Yaw);

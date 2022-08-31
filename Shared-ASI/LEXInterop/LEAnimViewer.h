@@ -115,7 +115,7 @@ public:
 			// Make sure the variables are set
 			//SetSequenceString(static_cast<USequenceOp*>(Context), L"Type", LEAnimViewer::ActorFullMemoryPath);
 
-			const auto spGame = static_cast<ASFXGame*>(FindObjectOfType(ASFXGame::StaticClass()));
+			const auto spGame = static_cast<AGameInfo*>(FindObjectOfType(AGameInfo::StaticClass()));
 			spGame->ServerOptions = FString(ActorFullMemoryPath);
 			auto t = "";
 			//FVector v = FVector();

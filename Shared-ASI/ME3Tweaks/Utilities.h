@@ -37,6 +37,32 @@ void AlwaysNegativeNative(UObject* pObject, void* pFrame, void* pResult)
     *(long long*)pResult = FALSE;
 }
 
+FVector operator* (const FVector& vec, float multiplier)
+{
+	return FVector{ vec.X * multiplier, vec.Y * multiplier, vec.X * multiplier };
+}
+
+FVector operator/ (const FVector& vec, float divisor)
+{
+	return FVector{ vec.X / divisor, vec.Y / divisor, vec.X / divisor };
+}
+
+FVector& operator*= (FVector& vec, float multiplier)
+{
+	vec.X *= multiplier;
+	vec.Y *= multiplier;
+	vec.Z *= multiplier;
+	return vec;
+}
+
+FVector& operator/= (FVector& vec, float divisor)
+{
+	vec.X /= divisor;
+	vec.Y /= divisor;
+	vec.Z /= divisor;
+	return vec;
+}
+
 float Dot(FVector vector1, FVector vector2)
 {
 	return (vector1.X * vector2.X)
