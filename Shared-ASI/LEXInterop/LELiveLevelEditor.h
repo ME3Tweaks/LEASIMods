@@ -52,7 +52,7 @@ private:
 		// Send the actor information to LEX
 		for (int i = 0; i < Actors.Count; i++)
 		{
-			if (Actors.Data[i]->IsA(actorClass))
+			if (Actors.Data[i] && Actors.Data[i]->IsA(actorClass))
 			{
 				const auto actor = reinterpret_cast<AActor*>(Actors.Data[i]);
 
@@ -60,21 +60,15 @@ private:
 				std::wostringstream ss2; // This is not declared outside the loop cause otherwise it carries forward
 				ss2 << L"LIVELEVELEDITOR ACTORINFO ";
 
-				const auto name = actor->Name.GetName();
 				ss2 << L"MAP=" << GetContainingMapName(actor);
-				ss2 << L":ACTOR=" << name;
-				const auto index = actor->Name.Number;
-				if (index > 0)
-				{
-					ss2 << L'_' << index - 1;
-				}
+				ss2 << L":ACTOR=" << actor->GetInstancedName();
 
 				/*if (actor->bStatic || !actor->bMovable)
 				{
 					ss2 << ":static";
 				}*/
 
-				const auto tag = actor->Tag.GetName();
+				const auto tag = actor->Tag.Instanced();
 				if (strlen(tag) > 0 && _strcmpi(tag, actor->Class->GetName()) != 0)
 				{
 					// Tag != ClassName
@@ -88,11 +82,11 @@ private:
 					for (int j = 0; j < smca->Components.Count; j++)
 					{
 						const auto component = smca->Components(j);
-						if (IsA<UStaticMeshComponent>(component))
+						if (component && IsA<UStaticMeshComponent>(component))
 						{
 							//everything up to TAG is the same for every component, so just reset position and overwrite
 							ss2.seekp(strStartPos);
-							ss2 << L":COMPNAME=" << component->GetName();
+							ss2 << L":COMPNAME=" << component->GetInstancedName();
 							ss2 << L":COMPIDX=" << j;
 							ss2 << L'\0';
 							//This will send the entire string, which may contain garbage on the end if, for example, a previous component had a longer name.
