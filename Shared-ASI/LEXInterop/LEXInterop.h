@@ -137,10 +137,8 @@ SPI_IMPLEMENT_ATTACH
 #endif
 
 
-	auto _ = SDKInitializer::Instance();
-
-	// Cache the pointer so we can install hooks later
-	SharedData::SPIInterfacePtr = InterfacePtr;
+	INIT_CHECK_SDK()
+	
 
 	INIT_POSTHOOK(ProcessEvent, LE_PATTERN_POSTHOOK_PROCESSEVENT)
 

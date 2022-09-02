@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <string>
 
+#include "Interface.h"
 
 typedef unsigned char        byte;
 typedef signed long          int32;
@@ -107,7 +108,7 @@ namespace Common
 /// Initializes the SDK. If initialization fails, the function that calls this macro will return false.
 ///
 #define INIT_CHECK_SDK() \
-    auto _ = SDKInitializer::Instance(); \
+    ISharedProxyInterface::SPIInterfacePtr = InterfacePtr; \
     if (!SDKInitializer::Instance()->GetBioNamePools()) \
     { \
         errorln(L"Attach - GetBioNamePools() returned NULL!"); \
@@ -169,6 +170,26 @@ namespace Common
     INIT_FIND_PATTERN_POSTHOOK(VAR, PATTERN) \
     INIT_HOOK_PATTERN(VAR)
 
+
+
+// VARIABLE LOOKUP
+// Searches for the specified byte pattern, which is a 7-byte mov or lea instruction, with the 'source' operand being the address being calculated
+void* findAddressLeaMov(const char* name, const char* bytePattern)
+{
+    void* patternAddr;
+    if (const auto rc = ISharedProxyInterface::SPIInterfacePtr->FindPattern(&patternAddr, bytePattern);
+        rc != SPIReturn::Success)
+    {
+        writeln(L"Failed to find %hs pattern: %d / %s", name, rc, SPIReturnToString(rc));
+        return nullptr; // Will be 0
+    }
+
+    // This is the address of the instruction
+    const auto instruction = static_cast<BYTE*>(patternAddr);
+    const auto RIPaddress = instruction + 7; // Relative Instruction Pointer (after instruction)
+    const auto offset = *reinterpret_cast<int32_t*>(instruction + 3); // Offset listed in the instruction
+    return RIPaddress + offset; // Added together we get the actual address
+}
 
 
 // COMMON HOOK PATTERNS

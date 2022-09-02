@@ -4,8 +4,7 @@
 #include "../Interface.h"
 #include "../ME3Tweaks/ME3TweaksHeader.h"
 #include "UtilityMethods.h"
-#include "SharedData.h"
-#include "StaticVariablePointers.h"
+#include "../StaticVariablePointers.h"
 
 
 // Typedefs
@@ -23,7 +22,7 @@ static BOOL FarMove(AActor* actor, FVector& destPos, const BOOL test, const BOOL
 	if (!FarMoveActor)
 	{
 		//variable name for use by the macro
-		ISharedProxyInterface* InterfacePtr = SharedData::SPIInterfacePtr;
+		ISharedProxyInterface* InterfacePtr = ISharedProxyInterface::SPIInterfacePtr;
 #if defined(GAMELE1) || defined(GAMELE2)
 		// LE1 and LE2 have same byte signature
 		INIT_FIND_PATTERN_POSTHOOK(FarMoveActor,/*"40 55 53 57 41*/ "54 41 56 48 8d 6c 24 d9 48 81 ec a0 00 00 00");
@@ -54,7 +53,7 @@ static BOOL SetRotationWrapper(AActor* actor, const FRotator& rotation)
 	if (static bool initialized = false; !initialized)
 	{
 		//variable name for use by the macro
-		ISharedProxyInterface* InterfacePtr = SharedData::SPIInterfacePtr;
+		ISharedProxyInterface* InterfacePtr = ISharedProxyInterface::SPIInterfacePtr;
 
 		//AActor::SetRotation calls the MoveActor function.
 		//This disables MoveActor's check for bStatic and bMoveable, so that we can rotate anything

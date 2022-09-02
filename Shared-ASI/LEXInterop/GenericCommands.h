@@ -3,8 +3,7 @@
 #include "../ConsoleCommandParsing.h"
 #include "../ME3Tweaks/ME3TweaksHeader.h"
 #include "../Common.h"
-#include "StaticVariablePointers.h"
-#include "UtilityMethods.h"
+#include "../StaticVariablePointers.h"
 #include "InteropActionQueue.h"
 
 struct CauseEventAction final : ActionBase
@@ -91,7 +90,6 @@ struct CachePackageAction final : ActionBase
 };
 #endif
 
-#if defined(GAMELE1) || defined(GAMELE2)
 struct StreamLevelAction final : ActionBase
 {
 	wstring LevelName;
@@ -116,7 +114,6 @@ struct StreamLevelAction final : ActionBase
 		}
 	}
 };
-#endif
 
 class GenericCommands {
 public:
@@ -155,8 +152,7 @@ public:
 			InteropActionQueue.push(new ConsoleCommandAction(s2ws(command)));
 			return true;
 		}
-
-#if defined(GAMELE1) || defined(GAMELE2)
+		
 		// 'STREAMLEVELIN <LevelFileName>'
 		// Streams a level in and sets it to visible
 		if (IsCmd(&command, "STREAMLEVELIN "))
@@ -172,7 +168,6 @@ public:
 			InteropActionQueue.push(new StreamLevelAction(s2ws(command), true));
 			return true;
 		}
-#endif
 
   // We did not handle this command.
 		return false;

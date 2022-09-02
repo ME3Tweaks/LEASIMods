@@ -115,7 +115,7 @@ void appCreateBitmap_hook(wchar_t* inputBaseName, int width, int height, FColor*
 SPI_IMPLEMENT_ATTACH
 {
 	// Hook appCreateBitmap and provide our own implementation of saving the bitmap data to disk.
-	auto _ = SDKInitializer::Instance();
+	INIT_CHECK_SDK()
 #ifdef GAMELE1
 	INIT_FIND_PATTERN_POSTHOOK(appCreateBitmap, /*40 55 53 56 57*/ "41 54 41 55 41 56 41 57 48 8d ac 24 38 f8 ff ff 48 81 ec c8 08 00 00 48 c7 44 24 70 fe ff ff ff 48 8b 05 3c b6 55 01 48 33 c4 48 89 85 b0 07 00 00 4c 89 4c 24 48 44 89 44 24 58");
 #elif defined(GAMELE2)

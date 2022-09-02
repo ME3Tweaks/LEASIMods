@@ -262,7 +262,7 @@ void ProcessEvent_hook(UObject* Context, UFunction* Function, void* Parms, void*
 
 SPI_IMPLEMENT_ATTACH
 {
-	auto _ = SDKInitializer::Instance();
+	INIT_CHECK_SDK()
 
 	INIT_FIND_PATTERN_POSTHOOK(ProcessEvent, LE_PATTERN_POSTHOOK_PROCESSEVENT);
 	INIT_HOOK_PATTERN(ProcessEvent);

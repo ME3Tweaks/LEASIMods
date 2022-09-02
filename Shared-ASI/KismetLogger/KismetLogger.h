@@ -100,7 +100,7 @@ SPI_IMPLEMENT_ATTACH
 {
 	Common::OpenConsole();
 
-	auto _ = SDKInitializer::Instance();
+	INIT_CHECK_SDK()
 
 	// Hook ProcessEvent for Non-Native
 	INIT_FIND_PATTERN_POSTHOOK(ProcessEvent, LE_PATTERN_POSTHOOK_PROCESSEVENT);

@@ -1,16 +1,13 @@
 #pragma once
 
-#include "../Common.h"
-#include "../ME3Tweaks/ME3TweaksHeader.h"
-#include "LEXInterop.h"
-#include "SharedData.h"
+#include "Common.h"
+#include "ME3Tweaks/ME3TweaksHeader.h"
 
 // Typedefs
 typedef void (*tSFXNameConstructor)(FName* outValue, const wchar_t* nameValue, int nameNumber, BOOL createIfNotFoundMaybe, BOOL unk2);
 
 class StaticVariables
 {
-private:
 	// Function pointers
 	static tSFXNameConstructor sfxNameConstructor;
 
@@ -18,6 +15,7 @@ private:
 	static UWorld* GWorldPtr;
 
 public:
+
 	static UWorld* GWorld() {
 		if (GWorldPtr) return GWorldPtr;
 		constexpr auto byte_pattern =
@@ -28,7 +26,7 @@ public:
 #elif defined(GAMELE3)
 		 "48 8b 0d ee 33 78 01 e8 21 f3 78 00";
 #endif
-		GWorldPtr = static_cast<UWorld*>(findAddressLeaMov(SharedData::SPIInterfacePtr, "GWorld", byte_pattern));
+		GWorldPtr = static_cast<UWorld*>(findAddressLeaMov("GWorld", byte_pattern));
 		return GWorldPtr;
 	}
 
@@ -39,7 +37,7 @@ public:
 		if (sfxNameConstructor == nullptr)
 		{
 			// This is so we can use the macro for slightly cleaner code.
-			const auto InterfacePtr = SharedData::SPIInterfacePtr;
+			const auto InterfacePtr = ISharedProxyInterface::SPIInterfacePtr;
 
 			// Byte signature is the same across all 3 games
 			INIT_FIND_PATTERN_POSTHOOK(sfxNameConstructor, /*"40 55 56 57 41*/ "54 41 55 41 56 41 57 48 81 ec 00 07 00 00");
@@ -51,5 +49,3 @@ public:
 };
 UWorld* StaticVariables::GWorldPtr = nullptr;
 tSFXNameConstructor StaticVariables::sfxNameConstructor = nullptr;
-
-

@@ -17,8 +17,9 @@
 #include "../ConsoleCommandParsing.h"
 #include "../Interface.h"
 #include "../ME3Tweaks/ME3TweaksHeader.h"
+#include "../StaticVariablePointers.h"
 
-#define VERSION "1.0.0"
+#define VERSION "2.0.0"
 
 SPI_PLUGINSIDE_SUPPORT(GAMETAG L"ConsoleExtension", L"SirCxyrtyx", L"" VERSION, SPI_GAME, SPI_VERSION_LATEST);
 SPI_PLUGINSIDE_POSTLOAD;
@@ -59,6 +60,10 @@ void readCamArray(const std::string& file_name, FTPOV* data)
 	in.close();
 };
 
+#define GET_TOKEN() \
+	wchar_t* context = nullptr; \
+	const wchar_t* const token = wcstok_s(cmd, seps, &context); \
+	if (token == nullptr) { return FALSE; }
 
 typedef unsigned (*tExecHandler)(UEngine* Context, wchar_t* cmd, void* unk);
 tExecHandler ExecHandler = nullptr;
@@ -72,12 +77,7 @@ unsigned ExecHandler_hook(UEngine* Context, wchar_t* cmd, void* unk)
 	}
 	if (IsCmd(&cmd, L"savecam"))
 	{
-		wchar_t* context = nullptr;
-		const wchar_t* const token = wcstok_s(cmd, seps, &context);
-		if (token == nullptr)
-		{
-			return FALSE;
-		}
+		GET_TOKEN()
 
 		if (const int i = _wtoi(token); i >= 0 && i < savedCamsLength)
 		{
@@ -87,12 +87,7 @@ unsigned ExecHandler_hook(UEngine* Context, wchar_t* cmd, void* unk)
 	}
 	else if (IsCmd(&cmd, L"loadcam"))
 	{
-		wchar_t* context = nullptr;
-		const wchar_t* const token = wcstok_s(cmd, seps, &context);
-		if (token == nullptr)
-		{
-			return FALSE;
-		}
+		GET_TOKEN()
 
 		if (const int i = _wtoi(token); i >= 0 && i < savedCamsLength)
 		{
@@ -101,6 +96,44 @@ unsigned ExecHandler_hook(UEngine* Context, wchar_t* cmd, void* unk)
 			shouldSetCamPOV = true;
 		}
 	}
+#ifdef GAMELE3
+	//LE1 and LE2 have these commands built in
+
+	else if (IsCmd(&cmd, L"streamlevelin"))
+	{
+		GET_TOKEN()
+
+		if (const auto cheatMan = reinterpret_cast<UBioCheatManager*>(FindObjectOfType(UBioCheatManager::StaticClass())))
+		{
+			FName levelName;
+			StaticVariables::CreateName(token, 0, &levelName);
+			cheatMan->StreamLevelIn(levelName);
+		}
+	}
+	else if (IsCmd(&cmd, L"streamlevelout"))
+	{
+		GET_TOKEN()
+
+		if (const auto cheatMan = reinterpret_cast<UBioCheatManager*>(FindObjectOfType(UBioCheatManager::StaticClass())))
+		{
+			FName levelName;
+			StaticVariables::CreateName(token, 0, &levelName);
+			cheatMan->StreamLevelOut(levelName);
+		}
+	}
+	else if (IsCmd(&cmd, L"onlyloadlevel"))
+	{
+		GET_TOKEN()
+
+		if (const auto cheatMan = reinterpret_cast<UBioCheatManager*>(FindObjectOfType(UBioCheatManager::StaticClass())))
+		{
+			FName levelName;
+			StaticVariables::CreateName(token, 0, &levelName);
+			cheatMan->OnlyLoadLevel(levelName);
+		}
+	}
+#endif
+
 	return FALSE;
 }
 
@@ -127,11 +160,7 @@ void ProcessEvent_hook(UObject* Context, UFunction* Function, void* Parms, void*
 		{
 			shouldSetCamPOV = false;
 			const auto actor = static_cast<AActor*>(camera->PCOwner);
-#ifdef GAMELE3
-			actor->location = povToLoad.location;
-#else
-			actor->Location = povToLoad.Location;
-#endif
+			actor->LOCATION = povToLoad.LOCATION;
 			actor->Rotation = povToLoad.Rotation;
 		}
 	}

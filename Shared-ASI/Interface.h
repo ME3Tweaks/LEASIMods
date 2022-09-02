@@ -122,6 +122,8 @@ enum class SPIGameVersion
 class ISharedProxyInterface
 {
 public:
+    static ISharedProxyInterface* SPIInterfacePtr;
+
     /// <summary>
     /// Get version of the SPI implementation provided by the host proxy.
     /// </summary>
@@ -166,4 +168,5 @@ public:
     SPIDECL UninstallHook(const char* name) = 0;
 };
 
+ISharedProxyInterface* ISharedProxyInterface::SPIInterfacePtr = nullptr;
 #pragma endregion

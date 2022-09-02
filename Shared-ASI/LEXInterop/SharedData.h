@@ -1,15 +1,11 @@
 #pragma once
 
-#include "../Interface.h"
 #include "../ME3Tweaks/ME3TweaksHeader.h"
 
 // Common data
 class SharedData
 {
 public:
-	// The pointer for installing hook and finding patterns
-	static ISharedProxyInterface* SPIInterfacePtr;
-
 	// The player camera POV
 	static FTPOV cachedPlayerPOV;
 
@@ -38,4 +34,3 @@ public:
 // Static variable initialization
 FTPOV SharedData::cachedPlayerPOV = FTPOV();
 FVector SharedData::cachedPlayerPosition = FVector();
-ISharedProxyInterface* SharedData::SPIInterfacePtr = nullptr;

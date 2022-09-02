@@ -2,7 +2,7 @@
 
 #include "../Common.h"
 #include "../ME3Tweaks/ME3TweaksHeader.h"
-#include "SharedData.h"
+#include "../StaticVariablePointers.h"
 #include "UtilityMethods.h"
 
 
@@ -43,7 +43,7 @@ class LEAnimViewer
 	// Return value is not used; it's only to allow usage of macro
 	static bool AllowWindowPausing(const bool allow)
 	{
-		const auto InterfacePtr = SharedData::SPIInterfacePtr;
+		const auto InterfacePtr = ISharedProxyInterface::SPIInterfacePtr;
 		if (!IsWindowFocused)
 		{
 			INIT_POSTHOOK(IsWindowFocused, IS_WINDOW_FOCUSED_PATTERN);

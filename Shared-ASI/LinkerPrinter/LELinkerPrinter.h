@@ -133,7 +133,7 @@ SPI_IMPLEMENT_ATTACH
 {
 	Common::OpenConsole();
 
-	auto _ = SDKInitializer::Instance();
+	INIT_CHECK_SDK()
 
 	INIT_FIND_PATTERN_POSTHOOK(SetLinker, /*"4c 8b 51 2c 4c"*/ "8b c9 4d 85 d2 74 39 48 85 d2 74 1c 48 8b c1");
 	if (const auto rc = InterfacePtr->InstallHook(MYHOOK "SetLinker", SetLinker, SetLinker_hook, reinterpret_cast<void**>(&SetLinker_orig));
