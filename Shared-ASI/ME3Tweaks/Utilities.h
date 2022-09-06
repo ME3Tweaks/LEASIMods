@@ -37,6 +37,10 @@ void AlwaysNegativeNative(UObject* pObject, void* pFrame, void* pResult)
     *(long long*)pResult = FALSE;
 }
 
+//============================================
+// FVector and FMatrix math
+//============================================
+
 FVector operator* (const FVector& vec, float multiplier)
 {
 	return FVector{ vec.X * multiplier, vec.Y * multiplier, vec.X * multiplier };
@@ -177,3 +181,20 @@ FMatrix MatrixCompose(FVector translation, FVector scale, float pitchRad, float 
 		}
 	};
 }
+
+//============================================
+// TArray iterator support (so it can be used in range-based for loops and stl algorithms)
+//============================================
+
+template< class T >
+T* begin(TArray<T>& arr) { return arr.Data; }
+template< class T >
+T* end(TArray<T>& arr) { return arr.Data + arr.Count; }
+template< class T >
+T const* cbegin(TArray<T> const& arr) { return arr.Data; }
+template< class T >
+T* cend(TArray<T> const& arr) { return arr.Data + arr.Count; }
+template< class T >
+T const* begin(TArray<T> const& arr) { return cbegin(arr); }
+template< class T >
+T const* end(TArray<T> const& arr) { return cend(arr); }

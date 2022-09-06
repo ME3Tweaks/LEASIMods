@@ -1,109 +1,144 @@
 #pragma once
 #include <ostream>
+#include <set>
+#include <algorithm>
 
 #include "../ME3Tweaks/ME3TweaksHeader.h"
 #include "../ConsoleCommandParsing.h"
 #include "LLEActions.h"
 #include "InteropActionQueue.h"
 
+//needed so that std::set<FName> will compile
+inline bool operator< (const FName& a, const FName& b)
+{
+	return *reinterpret_cast<const uint64*>(&a) < *reinterpret_cast<const uint64*>(&b);
+}
 
-class LELiveLevelEditor
+class LELiveLevelEditor final
 {
 public:
 	static bool IsLLEActive;
-	static TArray<UObject*> Actors;
+	static bool IsPendingDeactivation;
 	static AActor* SelectedActor;
+	static FName SelectedActorMapName;
 	static int SelectedComponentIndex; //for editing a component in a CollectionActor. Ignored if SelectedActor is not a Collectionactor
 	static bool DrawLineToSelected;
 	static FColor TraceLineColor;
 	static float CoordinateScale;
+	static std::set<FName> LevelsLoadedByLLE;
 	
 private:
-	static void DumpActors()
+	static void ClearSelectedActor()
 	{
-		IsLLEActive = true;
-		SelectedActor = nullptr; // We deselect the actor
+		SelectedActor = nullptr;
+		SelectedActorMapName = {};
 		SelectedComponentIndex = -1;
-		const auto objCount = UObject::GObjObjects()->Count;
-		const auto objArray = UObject::GObjObjects()->Data;
-
-		Actors.Count = 0; //clear the array without de-allocating any memory.
-
-		const auto actorClass = AActor::StaticClass();
-		for (auto j = 0; j < objCount; j++)
+	}
+	
+	static void RefreshLevels(const TArray<ULevelStreaming*>& streamingLevels, const std::vector<FName>* removedLevels = nullptr)
+	{
+		if (removedLevels && SelectedActor)
 		{
-			const auto obj = objArray[j];
-			if (obj && obj->IsA(actorClass))
+			for (FName levelName : *removedLevels)
 			{
-				const auto actor = reinterpret_cast<AActor*>(obj);
-				if (IsDefaultObject(actor) || IsA<ABioWorldInfo>(actor))// || actor->bStatic || !actor->bMovable)
+				if (levelName == SelectedActorMapName)
+				{
+					ClearSelectedActor();
+					break;
+				}
+			}
+		}
+		LevelsLoadedByLLE.clear();
+		/* JSON format example
+		[
+		   {
+		      "Name":"BioD_Nor",
+		      "Actors":[
+		         {
+		            "Name":"BioPawn_0",
+		            "Tag":"Liara"
+		         },
+		         {
+		            "Name":"StaticMeshCollectionActor_23",
+		            "Components":[
+		               "StaticMeshActor_34",
+		               "StaticMeshActor_36"
+		            ]
+		         }
+		      ]
+		   }
+		]
+		 */
+
+		std::wostringstream ss;
+		ss << L"LIVELEVELEDITOR LEVELSUPDATE [";
+		bool firstMap = true;
+		for (const auto streaming_level : streamingLevels)
+		{
+			if (!streaming_level->bIsVisible || !streaming_level->LoadedLevel)
+			{
+				continue;
+			}
+			LevelsLoadedByLLE.insert(streaming_level->PackageName);
+
+			if (!firstMap)
+			{
+				ss << L',';
+			}
+			ss << L"{\"Name\":\"" << streaming_level->PackageName.Instanced() << L"\",\"Actors\":[";
+			bool firstActor = true;
+			for (const auto actor : streaming_level->LoadedLevel->Actors)
+			{
+				if (!actor || IsDefaultObject(actor) || IsA<ABioWorldInfo>(actor))
 				{
 					continue;
 				}
-				Actors.Add(actor); // We will send them to LEX after we bundle it all up
-			}
-		}
-
-		// This originally used to count first but that was removed for other design issues
-
-		// Tell LEX we're about to send over an actor list, so it can clear it and be ready for new data.
-		SendStringToLEX(L"LIVELEVELEDITOR ACTORDUMPSTART");
-
-		// Send the actor information to LEX
-		for (int i = 0; i < Actors.Count; i++)
-		{
-			if (Actors.Data[i] && Actors.Data[i]->IsA(actorClass))
-			{
-				const auto actor = reinterpret_cast<AActor*>(Actors.Data[i]);
-
-				// String interps in C++ :/
-				std::wostringstream ss2; // This is not declared outside the loop cause otherwise it carries forward
-				ss2 << L"LIVELEVELEDITOR ACTORINFO ";
-
-				ss2 << L"MAP=" << GetContainingMapName(actor);
-				ss2 << L":ACTOR=" << actor->GetInstancedName();
-
-				/*if (actor->bStatic || !actor->bMovable)
+				if (!firstActor)
 				{
-					ss2 << ":static";
-				}*/
-
-				const auto tag = actor->Tag.Instanced();
-				if (strlen(tag) > 0 && _strcmpi(tag, actor->Class->GetName()) != 0)
-				{
-					// Tag != ClassName
-					ss2 << L":TAG=" << tag;
+					ss << L',';
 				}
-
+				ss << L"{";
 				if (actor->IsA(AStaticMeshCollectionActor::StaticClass()))
 				{
-					const auto strStartPos = ss2.tellp();
 					const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(actor);
-					for (int j = 0; j < smca->Components.Count; j++)
+					ss << L"\"Name\":\"" << actor->GetInstancedName() << L"\",\"Components\":[";
+					bool firstComponent = true;
+					for (const auto component : smca->Components)
 					{
-						const auto component = smca->Components(j);
+						if (!firstComponent)
+						{
+							ss << L',';
+						}
 						if (component && IsA<UStaticMeshComponent>(component))
 						{
-							//everything up to TAG is the same for every component, so just reset position and overwrite
-							ss2.seekp(strStartPos);
-							ss2 << L":COMPNAME=" << component->GetInstancedName();
-							ss2 << L":COMPIDX=" << j;
-							ss2 << L'\0';
-							//This will send the entire string, which may contain garbage on the end if, for example, a previous component had a longer name.
-							//This isn't a problem, since we explicitly put a null at the end, and LEX reads until a null.
-							SendStringToLEX(ss2.str());
+							ss << L"\"" << component->GetInstancedName() << L"\"";
 						}
+						else
+						{
+							ss << L"null";
+						}
+						firstComponent = false;
 					}
-					continue;
+					ss << L']';
 				}
-				
-				ss2 << L'\0';
-				SendStringToLEX(ss2.str());
+				else
+				{
+					ss << L"\"Name\":\"" << actor->GetInstancedName() << L"\"";
+					const auto tag = actor->Tag.Instanced();
+					if (strlen(tag) > 0 && _strcmpi(tag, actor->Class->GetName()) != 0)
+					{
+						// Tag != ClassName
+						ss << L",\"Tag\":\"" << tag << L"\"";
+					}
+				}
+				ss << L"}";
+				firstActor = false;
 			}
+			ss << L"]}";
+			firstMap = false;
 		}
-
-		// Tell LEX we're done.
-		SendStringToLEX(L"LIVELEVELEDITOR ACTORDUMPFINISHED");
+		ss << L"]";
+		SendStringToLEX(ss.str(), 1000);
 	}
 
 	// Gets an actor with the specified full name from the specified map file in memory
@@ -125,12 +160,11 @@ private:
 			const auto obj = objArray[j];
 			if (obj && obj->IsA(actorClass)) {
 				const auto objMapName = GetContainingMapName(obj);
-				if (_strcmpi(mapName, objMapName) != 0)
+				if (_strcmpi(mapName, objMapName.Instanced()) != 0)
 					continue; // Go to next object.
 
-				const auto name = obj->GetFullName(false);
 				//writeln(L"%hs", name);
-				if (strcmp(actorName, name) == 0)
+				if (_strcmpi(actorName, obj->GetInstancedName()) == 0)
 				{
 					if (IsA<AStaticMeshCollectionActor>(obj))
 					{
@@ -147,15 +181,15 @@ private:
 						SelectedComponentIndex = -1;
 					}
 					SelectedActor = reinterpret_cast<AActor*>(obj);
+					SelectedActorMapName = objMapName;
 					SendStringToLEX(L"LIVELEVELEDITOR ACTORSELECTED"); // We have selected an actor
 					return;
 				}
 			}
 		}
 	NotFound:
+		ClearSelectedActor();
 		SendStringToLEX(L"LIVELEVELEDITOR ACTORSELECTED"); // We didn't find an actor but we finished the selection routine.
-		SelectedActor = nullptr; // Didn't find!
-		SelectedComponentIndex = -1;
 	}
 
 	static void SendActorData()
@@ -289,37 +323,67 @@ public:
 	// Return false if other features shouldn't be able to also handle this function call
 	static bool ProcessEvent(UObject* Context, UFunction* Function, void* Parms, void* Result)
 	{
-		if (SelectedActor == nullptr)
+		if (!IsLLEActive)
 			return true; // We have nothing to handle here
-
-		// PostRender
+		
 		const auto funcName = Function->GetName();
-
-		// This isn't that efficient since we could skip this every time if
-		// we weren't drawing the line. But we have to be able to flush it out.
-
-		if (strcmp(funcName, "PostRender") == 0)
+		if (strcmp(funcName, "PostRender") == 0 && IsA<ABioHUD>(Context))
 		{
 			const auto hud = reinterpret_cast<ABioHUD*>(Context);
 			if (hud != nullptr)
 			{
-				hud->FlushPersistentDebugLines(); // Clear it out
-				if (IsLLEActive)
+				hud->FlushPersistentDebugLines();
+				if (IsPendingDeactivation)
 				{
-					if (DrawLineToSelected) {
-						auto line_end = SelectedActor->LOCATION;
-						if (SelectedComponentIndex >= 0 && IsA<AStaticMeshCollectionActor>(SelectedActor))
+					IsLLEActive = false;
+					ClearSelectedActor();
+					LevelsLoadedByLLE.clear();
+					return true;
+				}
+				if (hud->WorldInfo)
+				{
+					const auto streamingLevels = hud->WorldInfo->StreamingLevels;
+					std::set<FName> visibleLevels{};
+
+					for (const auto streaming_level : streamingLevels)
+					{
+						if (streaming_level->bIsVisible && streaming_level->LoadedLevel)
 						{
-							const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(SelectedActor);
-							const auto comp = smca->Components(SelectedComponentIndex);
-							if (IsA<UStaticMeshComponent>(comp))
-							{
-								line_end = static_cast<FVector>(reinterpret_cast<UStaticMeshComponent*>(comp)->CachedParentToWorld.WPlane);
-							}
+							visibleLevels.insert(streaming_level->PackageName);
 						}
-						hud->DrawDebugLine(SharedData::cachedPlayerPosition, line_end, TraceLineColor.R, TraceLineColor.G, TraceLineColor.B, TRUE);
-						hud->DrawDebugCoordinateSystem(line_end, FRotator(), CoordinateScale, TRUE);
 					}
+
+					//check if any levels have been unloaded
+					std::vector<FName> diff;
+					std::set_difference(LevelsLoadedByLLE.begin(), LevelsLoadedByLLE.end(), visibleLevels.begin(), visibleLevels.end(), std::back_inserter(diff));
+					if (!diff.empty())
+					{
+						RefreshLevels(streamingLevels, &diff);
+					}
+					else
+					{
+						//check for newly loaded levels
+						std::set_difference(visibleLevels.begin(), visibleLevels.end(), LevelsLoadedByLLE.begin(), LevelsLoadedByLLE.end(), std::back_inserter(diff));
+						if (!diff.empty())
+						{
+							RefreshLevels(streamingLevels);
+						}
+					}
+
+				}
+				if (SelectedActor && DrawLineToSelected) {
+					auto line_end = SelectedActor->LOCATION;
+					if (SelectedComponentIndex >= 0 && IsA<AStaticMeshCollectionActor>(SelectedActor))
+					{
+						const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(SelectedActor);
+						const auto comp = smca->Components(SelectedComponentIndex);
+						if (IsA<UStaticMeshComponent>(comp))
+						{
+							line_end = static_cast<FVector>(reinterpret_cast<UStaticMeshComponent*>(comp)->CachedParentToWorld.WPlane);
+						}
+					}
+					hud->DrawDebugLine(SharedData::cachedPlayerPosition, line_end, TraceLineColor.R, TraceLineColor.G, TraceLineColor.B, TRUE);
+					hud->DrawDebugCoordinateSystem(line_end, FRotator(), CoordinateScale, TRUE);
 				}
 			}
 		}
@@ -332,21 +396,15 @@ public:
 	{
 		if (IsCmd(&command, "LLE_TEST_ACTIVE"))
 		{
-			// We can receive this command, so we are ready
+			ClearSelectedActor();
+			LevelsLoadedByLLE.clear();
 			SendStringToLEX(L"LIVELEVELEDITOR READY");
+			IsLLEActive = true;
 			return true;
 		}
 		if (IsCmd(&command, "LLE_DEACTIVATE"))
 		{
 			IsLLEActive = false;
-			SelectedActor = nullptr;
-			SelectedComponentIndex = -1;
-			return true;
-		}
-
-		if (IsCmd(&command, "LLE_DUMP_ACTORS"))
-		{
-			DumpActors();
 			return true;
 		}
 
@@ -428,13 +486,18 @@ public:
 
 		return false;
 	}
+
+	//no instantiation of static class
+	LELiveLevelEditor() = delete;
 };
 
 // Static variable initialization
-TArray<UObject*> LELiveLevelEditor::Actors = TArray<UObject*>();
 AActor* LELiveLevelEditor::SelectedActor = nullptr;
+FName LELiveLevelEditor::SelectedActorMapName{};
 int LELiveLevelEditor::SelectedComponentIndex = -1;
 bool LELiveLevelEditor::DrawLineToSelected = true;
 bool LELiveLevelEditor::IsLLEActive = false; 
+bool LELiveLevelEditor::IsPendingDeactivation = false; 
 FColor LELiveLevelEditor::TraceLineColor = FColor{0,255,255,255}; //B, G, R, A
 float LELiveLevelEditor::CoordinateScale = 100;
+std::set<FName> LELiveLevelEditor::LevelsLoadedByLLE{};

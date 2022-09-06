@@ -92,10 +92,17 @@ struct CachePackageAction final : ActionBase
 
 struct StreamLevelAction final : ActionBase
 {
-	wstring LevelName;
-	bool StreamOut;
+	enum StreamChangeKind
+	{
+		StreamOut,
+		StreamIn,
+		OnlyLoad
+	};
 
-	explicit StreamLevelAction(wstring levelName, const bool streamOut = false): LevelName(std::move(levelName)), StreamOut(streamOut) {}
+	wstring LevelName;
+	StreamChangeKind ChangeKind;
+
+	explicit StreamLevelAction(wstring levelName, const StreamChangeKind changeKind): LevelName(std::move(levelName)), ChangeKind(changeKind) {}
 
 	void Execute() override
 	{
@@ -103,13 +110,16 @@ struct StreamLevelAction final : ActionBase
 		{
 			FName levelName;
 			StaticVariables::CreateName(LevelName.c_str(), 0, &levelName);
-			if (StreamOut)
-			{
+			switch (ChangeKind) {
+			case StreamOut:
 				cheatMan->StreamLevelOut(levelName);
-			}
-			else
-			{
+				break;
+			case StreamIn:
 				cheatMan->StreamLevelIn(levelName);
+				break;
+			case OnlyLoad:
+				cheatMan->OnlyLoadLevel(levelName);
+				break;
 			}
 		}
 	}
@@ -157,7 +167,7 @@ public:
 		// Streams a level in and sets it to visible
 		if (IsCmd(&command, "STREAMLEVELIN "))
 		{
-			InteropActionQueue.push(new StreamLevelAction(s2ws(command)));
+			InteropActionQueue.push(new StreamLevelAction(s2ws(command), StreamLevelAction::StreamIn));
 			return true;
 		}
 
@@ -165,7 +175,15 @@ public:
 		// Streams a level out and removes it from the current level
 		if (IsCmd(&command, "STREAMLEVELOUT "))
 		{
-			InteropActionQueue.push(new StreamLevelAction(s2ws(command), true));
+			InteropActionQueue.push(new StreamLevelAction(s2ws(command), StreamLevelAction::StreamOut));
+			return true;
+		}
+
+		// 'ONLYLOADLEVEL <LevelFileName>'
+		// Streams a level in without setting it to visible
+		if (IsCmd(&command, "ONLYLOADLEVEL "))
+		{
+			InteropActionQueue.push(new StreamLevelAction(s2ws(command), StreamLevelAction::OnlyLoad));
 			return true;
 		}
 

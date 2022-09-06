@@ -86,27 +86,16 @@ char* GetUObjectClassName(const UObject* object)
 	return cOutBuffer;
 }
 
-char* GetContainingMapName(const UObject* object)
+FName GetContainingMapName(const UObject* object)
 {
-	if (object->Class && object->Outer)
+	const UObject* obj = object;
+	FName name{}; //0-initialized FName is "None"
+	while (obj->Class && obj->Outer)
 	{
-		class UObject* OuterObj = object->Outer;
-		static std::string lastName = "Undefined";
-		UINT32 lastIndex = -1;
-		while (OuterObj->Class && OuterObj->Outer)
-		{
-			lastName = OuterObj->Outer->GetName();
-			lastIndex = OuterObj->Outer->Name.Number;
-
-			OuterObj = OuterObj->Outer;
-		}
-		if (lastIndex > 0) {
-			lastIndex--; //Subtract 1 to match filesystem indexing
-			lastName += "_" + std::to_string(lastIndex);
-		}
-		return (char*)lastName.c_str();
+		obj = obj->Outer;
+		name = obj->Name;
 	}
-	return "(null)";
+	return name;
 }
 
 // Gets the string up to the end of the next space. The input parameter will be modified.
