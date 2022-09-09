@@ -174,6 +174,7 @@ namespace Common
 
 // VARIABLE LOOKUP
 // Searches for the specified byte pattern, which is a 7-byte mov or lea instruction, with the 'source' operand being the address being calculated
+//RESULT IS A DOUBLE POINTER! (eg. UWorld**)
 void* findAddressLeaMov(const char* name, const char* bytePattern)
 {
     void* patternAddr;

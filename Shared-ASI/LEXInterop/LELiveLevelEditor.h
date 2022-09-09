@@ -23,7 +23,9 @@ public:
 	static FName SelectedActorMapName;
 	static int SelectedComponentIndex; //for editing a component in a CollectionActor. Ignored if SelectedActor is not a Collectionactor
 	static bool DrawLineToSelected;
-	static FColor TraceLineColor;
+	static FLinearColor TraceLineColor;
+	static float TraceWidth;
+	static bool TraceOverlay;
 	static float CoordinateScale;
 	static std::set<FName> LevelsLoadedByLLE;
 	
@@ -34,8 +36,95 @@ private:
 		SelectedActorMapName = {};
 		SelectedComponentIndex = -1;
 	}
-	
-	static void RefreshLevels(const TArray<ULevelStreaming*>& streamingLevels, const std::vector<FName>* removedLevels = nullptr)
+
+	//puts all position data into the matrix, so edits will be consistent
+	static void NormalizeSMC(UStaticMeshComponent* smc)
+	{
+		if (smc->AbsoluteTranslation)
+		{
+			smc->AbsoluteTranslation = false;
+			smc->CachedParentToWorld.WPlane = FPlane{ {0, 0, 0}, 1 };
+		}
+		if (smc->AbsoluteRotation || smc->AbsoluteScale)
+		{
+			FVector translation;
+			FVector scale3D;
+			float pitch_rad;
+			float yaw_rad;
+			float roll_rad;
+			MatrixDecompose(smc->CachedParentToWorld, translation, scale3D, pitch_rad, yaw_rad, roll_rad);
+			if (smc->AbsoluteRotation)
+			{
+				smc->AbsoluteRotation = false;
+				pitch_rad = yaw_rad = roll_rad = 0;
+			}
+			if (smc->AbsoluteScale)
+			{
+				smc->AbsoluteScale = false;
+				scale3D = FVector{ 1,1,1 };
+			}
+			smc->CachedParentToWorld = MatrixCompose(translation, scale3D, pitch_rad, yaw_rad, roll_rad);
+		}
+		const auto pitch = UnrealRotationUnitsToRadians(smc->Rotation.Pitch);
+		const auto yaw = UnrealRotationUnitsToRadians(smc->Rotation.Yaw);
+		const auto roll = UnrealRotationUnitsToRadians(smc->Rotation.Roll);
+		smc->CachedParentToWorld = MatrixCompose(smc->Translation, smc->Scale3D * smc->Scale, pitch, yaw, roll);
+	}
+
+	static void AppendActorsInLevel(std::wostringstream& ss, ULevelBase* const level)
+	{
+		bool firstActor = true;
+		for (const auto actor : level->Actors)
+		{
+			if (!actor || IsDefaultObject(actor) || IsA<ABioWorldInfo>(actor))
+			{
+				continue;
+			}
+			if (!firstActor)
+			{
+				ss << L',';
+			}
+			ss << L"{";
+			if (actor->IsA(AStaticMeshCollectionActor::StaticClass()))
+			{
+				const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(actor);
+				ss << L"\"Name\":\"" << actor->GetInstancedName() << L"\",\"Components\":[";
+				bool firstComponent = true;
+				for (const auto component : smca->Components)
+				{
+					if (!firstComponent)
+					{
+						ss << L',';
+					}
+					if (component && IsA<UStaticMeshComponent>(component))
+					{
+						NormalizeSMC(reinterpret_cast<UStaticMeshComponent*>(component));
+						ss << L"\"" << component->GetInstancedName() << L"\"";
+					}
+					else
+					{
+						ss << L"null";
+					}
+					firstComponent = false;
+				}
+				ss << L']';
+			}
+			else
+			{
+				ss << L"\"Name\":\"" << actor->GetInstancedName() << L"\"";
+				const auto tag = actor->Tag.Instanced();
+				if (strlen(tag) > 0 && _strcmpi(tag, actor->Class->GetName()) != 0)
+				{
+					// Tag != ClassName
+					ss << L",\"Tag\":\"" << tag << L"\"";
+				}
+			}
+			ss << L"}";
+			firstActor = false;
+		}
+	}
+
+	static void RefreshLevels(const AWorldInfo* worldInfo, const std::vector<FName>* removedLevels = nullptr)
 	{
 		if (removedLevels && SelectedActor)
 		{
@@ -72,8 +161,16 @@ private:
 
 		std::wostringstream ss;
 		ss << L"LIVELEVELEDITOR LEVELSUPDATE [";
-		bool firstMap = true;
-		for (const auto streaming_level : streamingLevels)
+
+		const auto mainLevel = reinterpret_cast<ULevelBase*>(worldInfo->Outer);
+		const auto mainPackage = mainLevel->Outer->Outer;
+		LevelsLoadedByLLE.insert(mainPackage->Name);
+		ss << L"{\"Name\":\"" << mainPackage->GetInstancedName() << L"\",\"Actors\":[";
+		AppendActorsInLevel(ss, mainLevel);
+		ss << L"]}";
+
+		
+		for (const auto streaming_level : worldInfo->StreamingLevels)
 		{
 			if (!streaming_level->bIsVisible || !streaming_level->LoadedLevel)
 			{
@@ -81,61 +178,10 @@ private:
 			}
 			LevelsLoadedByLLE.insert(streaming_level->PackageName);
 
-			if (!firstMap)
-			{
-				ss << L',';
-			}
+			ss << L',';
 			ss << L"{\"Name\":\"" << streaming_level->PackageName.Instanced() << L"\",\"Actors\":[";
-			bool firstActor = true;
-			for (const auto actor : streaming_level->LoadedLevel->Actors)
-			{
-				if (!actor || IsDefaultObject(actor) || IsA<ABioWorldInfo>(actor))
-				{
-					continue;
-				}
-				if (!firstActor)
-				{
-					ss << L',';
-				}
-				ss << L"{";
-				if (actor->IsA(AStaticMeshCollectionActor::StaticClass()))
-				{
-					const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(actor);
-					ss << L"\"Name\":\"" << actor->GetInstancedName() << L"\",\"Components\":[";
-					bool firstComponent = true;
-					for (const auto component : smca->Components)
-					{
-						if (!firstComponent)
-						{
-							ss << L',';
-						}
-						if (component && IsA<UStaticMeshComponent>(component))
-						{
-							ss << L"\"" << component->GetInstancedName() << L"\"";
-						}
-						else
-						{
-							ss << L"null";
-						}
-						firstComponent = false;
-					}
-					ss << L']';
-				}
-				else
-				{
-					ss << L"\"Name\":\"" << actor->GetInstancedName() << L"\"";
-					const auto tag = actor->Tag.Instanced();
-					if (strlen(tag) > 0 && _strcmpi(tag, actor->Class->GetName()) != 0)
-					{
-						// Tag != ClassName
-						ss << L",\"Tag\":\"" << tag << L"\"";
-					}
-				}
-				ss << L"}";
-				firstActor = false;
-			}
+			AppendActorsInLevel(ss, streaming_level->LoadedLevel);
 			ss << L"]}";
-			firstMap = false;
 		}
 		ss << L"]";
 		SendStringToLEX(ss.str(), 1000);
@@ -214,7 +260,7 @@ private:
 										 RadiansToUnrealRotationUnits(yaw_rad),
 										 RadiansToUnrealRotationUnits(roll_rad) };
 					scale = smc->Scale;
-					if (scale != 0)
+					if (abs(scale) >= 1e-6f)
 					{
 						scale3D /= scale;
 					}
@@ -340,10 +386,13 @@ public:
 					LevelsLoadedByLLE.clear();
 					return true;
 				}
-				if (hud->WorldInfo)
+				if (hud->WorldInfo && hud->WorldInfo->Outer && hud->WorldInfo->Outer->Outer && hud->WorldInfo->Outer->Outer->Outer && IsA<ULevelBase>(hud->WorldInfo->Outer))
 				{
 					const auto streamingLevels = hud->WorldInfo->StreamingLevels;
 					std::set<FName> visibleLevels{};
+
+					//Main level
+					visibleLevels.insert(hud->WorldInfo->Outer->Outer->Outer->Name);
 
 					for (const auto streaming_level : streamingLevels)
 					{
@@ -358,7 +407,7 @@ public:
 					std::set_difference(LevelsLoadedByLLE.begin(), LevelsLoadedByLLE.end(), visibleLevels.begin(), visibleLevels.end(), std::back_inserter(diff));
 					if (!diff.empty())
 					{
-						RefreshLevels(streamingLevels, &diff);
+						RefreshLevels(hud->WorldInfo, &diff);
 					}
 					else
 					{
@@ -366,7 +415,7 @@ public:
 						std::set_difference(visibleLevels.begin(), visibleLevels.end(), LevelsLoadedByLLE.begin(), LevelsLoadedByLLE.end(), std::back_inserter(diff));
 						if (!diff.empty())
 						{
-							RefreshLevels(streamingLevels);
+							RefreshLevels(hud->WorldInfo);
 						}
 					}
 
@@ -382,7 +431,9 @@ public:
 							line_end = static_cast<FVector>(reinterpret_cast<UStaticMeshComponent*>(comp)->CachedParentToWorld.WPlane);
 						}
 					}
-					hud->DrawDebugLine(SharedData::cachedPlayerPosition, line_end, TraceLineColor.R, TraceLineColor.G, TraceLineColor.B, TRUE);
+					DrawDebugLine(hud, SharedData::cachedPlayerPosition, line_end, TraceLineColor, TraceWidth, TraceOverlay, true);
+					//DrawCoordinateSystem(line_end, CoordinateScale, 3);
+					//hud->DrawDebugLine(SharedData::cachedPlayerPosition, line_end, 255, 255, 0, TRUE);
 					hud->DrawDebugCoordinateSystem(line_end, FRotator(), CoordinateScale, TRUE);
 				}
 			}
@@ -422,9 +473,21 @@ public:
 
 		if (IsCmd(&command, "LLE_TRACE_COLOR "))
 		{
-			TraceLineColor.R = (BYTE)strtol(command, &command, 10);
-			TraceLineColor.G = (BYTE)strtol(command, &command, 10);
-			TraceLineColor.B = (BYTE)strtol(command, &command, 10);
+			TraceLineColor.R = strtof(command, &command);
+			TraceLineColor.G = strtof(command, &command);
+			TraceLineColor.B = strtof(command, &command);
+			return true;
+		}
+
+		if (IsCmd(&command, "LLE_TRACE_WIDTH "))
+		{
+			TraceWidth = strtof(command, &command);
+			return true;
+		}
+
+		if (IsCmd(&command, "LLE_TRACE_OVERLAY "))
+		{
+			TraceOverlay = strtol(command, &command, 10) != 0;
 			return true;
 		}
 
@@ -498,6 +561,8 @@ int LELiveLevelEditor::SelectedComponentIndex = -1;
 bool LELiveLevelEditor::DrawLineToSelected = true;
 bool LELiveLevelEditor::IsLLEActive = false; 
 bool LELiveLevelEditor::IsPendingDeactivation = false; 
-FColor LELiveLevelEditor::TraceLineColor = FColor{0,255,255,255}; //B, G, R, A
+FLinearColor LELiveLevelEditor::TraceLineColor = FLinearColor{1, 1, 0, 1};
+float LELiveLevelEditor::TraceWidth = 0.f;
+bool LELiveLevelEditor::TraceOverlay = false;
 float LELiveLevelEditor::CoordinateScale = 100;
 std::set<FName> LELiveLevelEditor::LevelsLoadedByLLE{};

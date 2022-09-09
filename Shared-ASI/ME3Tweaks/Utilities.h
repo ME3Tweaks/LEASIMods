@@ -43,12 +43,22 @@ void AlwaysNegativeNative(UObject* pObject, void* pFrame, void* pResult)
 
 FVector operator* (const FVector& vec, float multiplier)
 {
-	return FVector{ vec.X * multiplier, vec.Y * multiplier, vec.X * multiplier };
+	return FVector{ vec.X * multiplier, vec.Y * multiplier, vec.Z * multiplier };
 }
 
 FVector operator/ (const FVector& vec, float divisor)
 {
-	return FVector{ vec.X / divisor, vec.Y / divisor, vec.X / divisor };
+	return FVector{ vec.X / divisor, vec.Y / divisor, vec.Z / divisor };
+}
+
+FVector operator+ (const FVector& vec, float multiplier)
+{
+	return FVector{ vec.X + multiplier, vec.Y + multiplier, vec.Z + multiplier };
+}
+
+FVector operator- (const FVector& vec, float divisor)
+{
+	return FVector{ vec.X - divisor, vec.Y - divisor, vec.Z - divisor };
 }
 
 FVector& operator*= (FVector& vec, float multiplier)
@@ -64,6 +74,48 @@ FVector& operator/= (FVector& vec, float divisor)
 	vec.X /= divisor;
 	vec.Y /= divisor;
 	vec.Z /= divisor;
+	return vec;
+}
+
+FVector& operator+= (FVector& vec, float multiplier)
+{
+	vec.X += multiplier;
+	vec.Y += multiplier;
+	vec.Z += multiplier;
+	return vec;
+}
+
+FVector& operator-= (FVector& vec, float divisor)
+{
+	vec.X -= divisor;
+	vec.Y -= divisor;
+	vec.Z -= divisor;
+	return vec;
+}
+
+FVector operator+ (const FVector& vec, FVector vec2)
+{
+	return FVector{ vec.X + vec2.X, vec.Y + vec2.Y, vec.Z + vec2.Z };
+}
+
+FVector operator- (const FVector& vec, FVector vec2)
+{
+	return FVector{ vec.X - vec2.X, vec.Y - vec2.Y, vec.Z - vec2.Z };
+}
+
+FVector& operator+= (FVector& vec, FVector vec2)
+{
+	vec.X += vec2.X;
+	vec.Y += vec2.Y;
+	vec.Z += vec2.Z;
+	return vec;
+}
+
+FVector& operator-= (FVector& vec, FVector vec2)
+{
+	vec.X -= vec2.X;
+	vec.Y -= vec2.Y;
+	vec.Z -= vec2.Z;
 	return vec;
 }
 
@@ -180,6 +232,35 @@ FMatrix MatrixCompose(FVector translation, FVector scale, float pitchRad, float 
 			1.f
 		}
 	};
+}
+
+FMatrix operator* (const FMatrix& matrix1, FMatrix& matrix2)
+{
+	typedef float MatrixAs2DArray[4][4];
+	MatrixAs2DArray& m1 = *((MatrixAs2DArray*)&matrix1);
+	MatrixAs2DArray& m2 = *((MatrixAs2DArray*)&matrix2);
+	FMatrix result;
+	MatrixAs2DArray& r = *((MatrixAs2DArray*)&result);
+	r[0][0] = m1[0][0] * m2[0][0] + m1[0][1] * m2[1][0] + m1[0][2] * m2[2][0] + m1[0][3] * m2[3][0];
+	r[0][1] = m1[0][0] * m2[0][1] + m1[0][1] * m2[1][1] + m1[0][2] * m2[2][1] + m1[0][3] * m2[3][1];
+	r[0][2] = m1[0][0] * m2[0][2] + m1[0][1] * m2[1][2] + m1[0][2] * m2[2][2] + m1[0][3] * m2[3][2];
+	r[0][3] = m1[0][0] * m2[0][3] + m1[0][1] * m2[1][3] + m1[0][2] * m2[2][3] + m1[0][3] * m2[3][3];
+	
+	r[1][0] = m1[1][0] * m2[0][0] + m1[1][1] * m2[1][0] + m1[1][2] * m2[2][0] + m1[1][3] * m2[3][0];
+	r[1][1] = m1[1][0] * m2[0][1] + m1[1][1] * m2[1][1] + m1[1][2] * m2[2][1] + m1[1][3] * m2[3][1];
+	r[1][2] = m1[1][0] * m2[0][2] + m1[1][1] * m2[1][2] + m1[1][2] * m2[2][2] + m1[1][3] * m2[3][2];
+	r[1][3] = m1[1][0] * m2[0][3] + m1[1][1] * m2[1][3] + m1[1][2] * m2[2][3] + m1[1][3] * m2[3][3];
+	
+	r[2][0] = m1[2][0] * m2[0][0] + m1[2][1] * m2[1][0] + m1[2][2] * m2[2][0] + m1[2][3] * m2[3][0];
+	r[2][1] = m1[2][0] * m2[0][1] + m1[2][1] * m2[1][1] + m1[2][2] * m2[2][1] + m1[2][3] * m2[3][1];
+	r[2][2] = m1[2][0] * m2[0][2] + m1[2][1] * m2[1][2] + m1[2][2] * m2[2][2] + m1[2][3] * m2[3][2];
+	r[2][3] = m1[2][0] * m2[0][3] + m1[2][1] * m2[1][3] + m1[2][2] * m2[2][3] + m1[2][3] * m2[3][3];
+	
+	r[3][0] = m1[3][0] * m2[0][0] + m1[3][1] * m2[1][0] + m1[3][2] * m2[2][0] + m1[3][3] * m2[3][0];
+	r[3][1] = m1[3][0] * m2[0][1] + m1[3][1] * m2[1][1] + m1[3][2] * m2[2][1] + m1[3][3] * m2[3][1];
+	r[3][2] = m1[3][0] * m2[0][2] + m1[3][1] * m2[1][2] + m1[3][2] * m2[2][2] + m1[3][3] * m2[3][2];
+	r[3][3] = m1[3][0] * m2[0][3] + m1[3][1] * m2[1][3] + m1[3][2] * m2[2][3] + m1[3][3] * m2[3][3];
+	return result;
 }
 
 //============================================

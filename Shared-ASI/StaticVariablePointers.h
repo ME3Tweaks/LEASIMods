@@ -12,12 +12,12 @@ class StaticVariables
 	static tSFXNameConstructor sfxNameConstructor;
 
 	// Object pointers
-	static UWorld* GWorldPtr;
+	static UWorld** GWorldPtr;
 
 public:
 
 	static UWorld* GWorld() {
-		if (GWorldPtr) return GWorldPtr;
+		if (GWorldPtr) return *GWorldPtr;
 		constexpr auto byte_pattern =
 #ifdef GAMELE1 
 		"48 8b 0d 6b 2b 47 01 e8 2e 63 30 00 0f 28 f8 48 8b 0d 5c 2b 47 01";
@@ -26,8 +26,8 @@ public:
 #elif defined(GAMELE3)
 		 "48 8b 0d ee 33 78 01 e8 21 f3 78 00";
 #endif
-		GWorldPtr = static_cast<UWorld*>(findAddressLeaMov("GWorld", byte_pattern));
-		return GWorldPtr;
+		GWorldPtr = static_cast<UWorld**>(findAddressLeaMov("GWorld", byte_pattern));
+		return *GWorldPtr;
 	}
 
 	// Creates a new name in the game process.
@@ -47,5 +47,5 @@ public:
 		return TRUE; // We made a name
 	}
 };
-UWorld* StaticVariables::GWorldPtr = nullptr;
+UWorld** StaticVariables::GWorldPtr = nullptr;
 tSFXNameConstructor StaticVariables::sfxNameConstructor = nullptr;
