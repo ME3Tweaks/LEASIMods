@@ -234,7 +234,7 @@ FMatrix MatrixCompose(FVector translation, FVector scale, float pitchRad, float 
 	};
 }
 
-FMatrix operator* (const FMatrix& matrix1, FMatrix& matrix2)
+FMatrix operator* (const FMatrix& matrix1, const FMatrix& matrix2)
 {
 	typedef float MatrixAs2DArray[4][4];
 	MatrixAs2DArray& m1 = *((MatrixAs2DArray*)&matrix1);

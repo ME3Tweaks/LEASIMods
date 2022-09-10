@@ -75,28 +75,17 @@ static BOOL SetRotationWrapper(AActor* actor, const FRotator& rotation)
 	return actor->SetRotation(rotation);
 }
 
-static BOOL DrawDebugLine(AActor* context, const FVector& start, const FVector& end, const FLinearColor& color, const float thickness = 1.f, const bool overlay = false, const bool persistent = true)
+static void DrawDebugLine(const FVector& start, const FVector& end, const FLinearColor& color, const float thickness = 1.f, const bool persistent = true)
 {
-	//typedef void(*tDrawDebugLine)(AActor* self, FVector LineStart, FVector LineEnd, BYTE R, BYTE G, BYTE B, unsigned int bPersistentLines);
-	//static tDrawDebugLine actorDrawDebugLine = nullptr;
-	//if (static bool initialized = false; !initialized)
-	//{
-	//	//variable name for use by the macro
-	//	ISharedProxyInterface* InterfacePtr = ISharedProxyInterface::SPIInterfacePtr;
-
-	//	INIT_FIND_PATTERN_POSTHOOK(actorDrawDebugLine,"48 89 6c 24 10 48 89 74 24 18 57 48 83 ec 40 83 bc 24 80 00 00 00 00");
-	//}
-	//actorDrawDebugLine(context, start, end, 1, 1, 0, persistent);
 	ULineBatchComponent* lineBatcher = persistent ? StaticVariables::GWorld()->PersistentLineBatcher : StaticVariables::GWorld()->LineBatcher;
-	lineBatcher->FPrimitiveDrawInterfaceVfTable->DrawLine(reinterpret_cast<BYTE*>(lineBatcher) + offsetof(ULineBatchComponent, FPrimitiveDrawInterfaceVfTable), start, end, color, overlay ? 2 : 1, thickness);
-	return true;
+	lineBatcher->FPrimitiveDrawInterfaceVfTable->DrawLine(reinterpret_cast<BYTE*>(lineBatcher) + offsetof(ULineBatchComponent, FPrimitiveDrawInterfaceVfTable), start, end, color, 1, thickness);
 }
-//static void DrawCoordinateSystem(const FVector& position, const float scale, const float thickness = 1.f)
-//{
-//	ULineBatchComponent* lineBatcher = StaticVariables::GWorld()->PersistentLineBatcher;
-//	const auto DrawLine = lineBatcher->FPrimitiveDrawInterfaceVfTable->DrawLine;
-//	const auto self = reinterpret_cast<BYTE*>(lineBatcher) + offsetof(ULineBatchComponent, FPrimitiveDrawInterfaceVfTable);
-//	DrawLine(self, position, position + FVector{ scale, 0.f, 0.f }, FLinearColor{ 1, 0, 0, 1 }, 1, thickness);
-//	DrawLine(self, position, position + FVector{ 0.f, scale, 0.f }, FLinearColor{ 0, 1, 0, 1 }, 1, thickness);
-//	DrawLine(self, position, position + FVector{ 0.f, 0.f, scale }, FLinearColor{ 0, 0, 1, 1 }, 1, thickness);
-//}
+static void DrawCoordinateSystem(const FVector& position, const float scale, const float thickness = 1.f)
+{
+	ULineBatchComponent* lineBatcher = StaticVariables::GWorld()->PersistentLineBatcher;
+	const auto DrawLine = lineBatcher->FPrimitiveDrawInterfaceVfTable->DrawLine;
+	const auto self = reinterpret_cast<BYTE*>(lineBatcher) + offsetof(ULineBatchComponent, FPrimitiveDrawInterfaceVfTable);
+	DrawLine(self, position, position + FVector{ scale, 0.f, 0.f }, FLinearColor{ 1, 0, 0, 1 }, 1, thickness);
+	DrawLine(self, position, position + FVector{ 0.f, scale, 0.f }, FLinearColor{ 0, 1, 0, 1 }, 1, thickness);
+	DrawLine(self, position, position + FVector{ 0.f, 0.f, scale }, FLinearColor{ 0, 0, 1, 1 }, 1, thickness);
+}

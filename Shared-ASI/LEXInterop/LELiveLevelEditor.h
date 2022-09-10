@@ -25,7 +25,6 @@ public:
 	static bool DrawLineToSelected;
 	static FLinearColor TraceLineColor;
 	static float TraceWidth;
-	static bool TraceOverlay;
 	static float CoordinateScale;
 	static std::set<FName> LevelsLoadedByLLE;
 	
@@ -37,38 +36,43 @@ private:
 		SelectedComponentIndex = -1;
 	}
 
-	//puts all position data into the matrix, so edits will be consistent
+	//consolidates all transformation data into the properties, to simplify editing them
 	static void NormalizeSMC(UStaticMeshComponent* smc)
 	{
+		FVector translation;
+		FVector scale3D;
+		float pitch_rad;
+		float yaw_rad;
+		float roll_rad;
+		FMatrix tmp = smc->CachedParentToWorld;
+		smc->CachedParentToWorld = IdentityMatrix;
 		if (smc->AbsoluteTranslation)
 		{
-			smc->AbsoluteTranslation = false;
-			smc->CachedParentToWorld.WPlane = FPlane{ {0, 0, 0}, 1 };
+			tmp.WPlane = FPlane{ {0, 0, 0}, 1 };
 		}
 		if (smc->AbsoluteRotation || smc->AbsoluteScale)
 		{
-			FVector translation;
-			FVector scale3D;
-			float pitch_rad;
-			float yaw_rad;
-			float roll_rad;
-			MatrixDecompose(smc->CachedParentToWorld, translation, scale3D, pitch_rad, yaw_rad, roll_rad);
+			MatrixDecompose(tmp, translation, scale3D, pitch_rad, yaw_rad, roll_rad);
 			if (smc->AbsoluteRotation)
 			{
-				smc->AbsoluteRotation = false;
 				pitch_rad = yaw_rad = roll_rad = 0;
 			}
 			if (smc->AbsoluteScale)
 			{
-				smc->AbsoluteScale = false;
 				scale3D = FVector{ 1,1,1 };
 			}
-			smc->CachedParentToWorld = MatrixCompose(translation, scale3D, pitch_rad, yaw_rad, roll_rad);
+			tmp = MatrixCompose(translation, scale3D, pitch_rad, yaw_rad, roll_rad);
 		}
 		const auto pitch = UnrealRotationUnitsToRadians(smc->Rotation.Pitch);
 		const auto yaw = UnrealRotationUnitsToRadians(smc->Rotation.Yaw);
 		const auto roll = UnrealRotationUnitsToRadians(smc->Rotation.Roll);
-		smc->CachedParentToWorld = MatrixCompose(smc->Translation, smc->Scale3D * smc->Scale, pitch, yaw, roll);
+		tmp = MatrixCompose(smc->Translation, smc->Scale3D * smc->Scale, pitch, yaw, roll) * tmp;
+
+		MatrixDecompose(tmp, translation, scale3D, pitch_rad, yaw_rad, roll_rad);
+		smc->Translation = translation;
+		smc->Rotation = FRotator{ RadiansToUnrealRotationUnits(pitch_rad), RadiansToUnrealRotationUnits(yaw_rad), RadiansToUnrealRotationUnits(roll_rad) };
+		smc->Scale = 1;
+		smc->Scale3D = scale3D;
 	}
 
 	static void AppendActorsInLevel(std::wostringstream& ss, ULevelBase* const level)
@@ -242,7 +246,7 @@ private:
 	{
 		if (SelectedActor) {
 			FVector translation{};
-			float scale{};
+			float scale = 0;
 			FVector scale3D{};
 			FRotator rotation{};
 			if (IsA<AStaticMeshCollectionActor>(SelectedActor))
@@ -252,18 +256,11 @@ private:
 				if (compC && compC->IsA(UStaticMeshComponent::StaticClass()))
 				{
 					const auto smc = reinterpret_cast<UStaticMeshComponent*>(compC);
-					float pitch_rad;
-					float yaw_rad;
-					float roll_rad;
-					MatrixDecompose(smc->CachedParentToWorld, translation, scale3D, pitch_rad, yaw_rad, roll_rad);
-					rotation = FRotator{ RadiansToUnrealRotationUnits(pitch_rad),
-										 RadiansToUnrealRotationUnits(yaw_rad),
-										 RadiansToUnrealRotationUnits(roll_rad) };
+
+					translation = smc->Translation;
 					scale = smc->Scale;
-					if (abs(scale) >= 1e-6f)
-					{
-						scale3D /= scale;
-					}
+					scale3D = smc->Scale3D;
+					rotation = smc->Rotation;
 				}
 			}
 			else
@@ -360,7 +357,10 @@ private:
 					InteropActionQueue.push(new ComponentScaleAction(reinterpret_cast<UStaticMeshComponent*>(compC), scale));
 				}
 			}
-			InteropActionQueue.push(new ScaleAction(SelectedActor, scale));
+			else
+			{
+				InteropActionQueue.push(new ScaleAction(SelectedActor, scale));
+			}
 		}
 	}
 
@@ -428,13 +428,14 @@ public:
 						const auto comp = smca->Components(SelectedComponentIndex);
 						if (IsA<UStaticMeshComponent>(comp))
 						{
-							line_end = static_cast<FVector>(reinterpret_cast<UStaticMeshComponent*>(comp)->CachedParentToWorld.WPlane);
+							line_end = reinterpret_cast<UStaticMeshComponent*>(comp)->Translation;
 						}
 					}
-					DrawDebugLine(hud, SharedData::cachedPlayerPosition, line_end, TraceLineColor, TraceWidth, TraceOverlay, true);
-					//DrawCoordinateSystem(line_end, CoordinateScale, 3);
-					//hud->DrawDebugLine(SharedData::cachedPlayerPosition, line_end, 255, 255, 0, TRUE);
-					hud->DrawDebugCoordinateSystem(line_end, FRotator(), CoordinateScale, TRUE);
+					DrawDebugLine(SharedData::cachedPlayerPosition, line_end, TraceLineColor, TraceWidth);
+					DrawCoordinateSystem(line_end, CoordinateScale, TraceWidth);
+
+					//DO NOT DELETE! Lines of non-zero width will NOT be rendered unless a line of 0 width is also drawn.
+					DrawDebugLine(SharedData::cachedPlayerPosition, line_end, TraceLineColor, 0);
 				}
 			}
 		}
@@ -482,12 +483,6 @@ public:
 		if (IsCmd(&command, "LLE_TRACE_WIDTH "))
 		{
 			TraceWidth = strtof(command, &command);
-			return true;
-		}
-
-		if (IsCmd(&command, "LLE_TRACE_OVERLAY "))
-		{
-			TraceOverlay = strtol(command, &command, 10) != 0;
 			return true;
 		}
 
@@ -562,7 +557,6 @@ bool LELiveLevelEditor::DrawLineToSelected = true;
 bool LELiveLevelEditor::IsLLEActive = false; 
 bool LELiveLevelEditor::IsPendingDeactivation = false; 
 FLinearColor LELiveLevelEditor::TraceLineColor = FLinearColor{1, 1, 0, 1};
-float LELiveLevelEditor::TraceWidth = 0.f;
-bool LELiveLevelEditor::TraceOverlay = false;
+float LELiveLevelEditor::TraceWidth = 3.f;
 float LELiveLevelEditor::CoordinateScale = 100;
 std::set<FName> LELiveLevelEditor::LevelsLoadedByLLE{};
