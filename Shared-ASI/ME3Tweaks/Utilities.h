@@ -7,6 +7,7 @@ struct OutParmInfo
 };
 
 // Code execution frame in UnrealScript
+#pragma pack(4)
 struct FFrame
 {
 	void* vtable;
