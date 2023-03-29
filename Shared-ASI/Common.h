@@ -174,7 +174,7 @@ namespace Common
 
 // VARIABLE LOOKUP
 // Searches for the specified byte pattern, which is a 7-byte mov or lea instruction, with the 'source' operand being the address being calculated
-//RESULT IS A DOUBLE POINTER! (eg. UWorld**)
+//RESULT IS A POINTER TO THE GLOBAL! (eg. For GWorld, which is a UWorld*, it will be a UWorld**)
 void* findAddressLeaMov(const char* name, const char* bytePattern)
 {
     void* patternAddr;
@@ -221,3 +221,79 @@ void* findAddressLeaMov(const char* name, const char* bytePattern)
 
 // Pattern for hooking the constructor function for an FName/SFXName (LE1/LE2/LE3)
 #define LE_PATTERN_POSTHOOK_SFXNAMECONSTRUCTOR   /*40 55 56 57 41*/ "54 41 55 41 56 41 57 48 81 ec 00 07 00 00"
+
+class UnrealMalloc
+{
+    void* (*appMalloc)(DWORD, DWORD, DWORD) = nullptr;
+    void (*appFree)(void*, DWORD) = nullptr;
+    void* (*appRealloc)(void*, DWORD, DWORD, DWORD) = nullptr;
+
+    bool CreateMalloc()
+    {
+        // This is so we can use the macro for slightly cleaner code.
+        const auto InterfacePtr = ISharedProxyInterface::SPIInterfacePtr;
+
+        //works for LE/LE2/LE3
+        INIT_FIND_PATTERN_POSTHOOK(appMalloc, /*"48 89 5c 24 08*/ "48 89 74 24 10 57 48 83 ec 20 8b f1 41 8b d8");
+    }
+
+    bool CreateFree()
+    {
+        // This is so we can use the macro for slightly cleaner code.
+        const auto InterfacePtr = ISharedProxyInterface::SPIInterfacePtr;
+
+        constexpr auto bytePattern =
+#ifdef GAMELE1 
+            /*48 89 5c 24 08*/ "57 48 83 ec 20 48 8b f9 8b da 48 8b 0d fa 43 5c 01";
+#elif defined(GAMELE2)
+            /*48 89 5c 24 08*/ "57 48 83 ec 20 48 8b f9 8b da 48 8b 0d a2 5a 5e 01";
+#elif defined(GAMELE3)
+            /*48 89 5c 24 08*/ "57 48 83 ec 20 48 8b f9 8b da 48 8b 0d a2 e4 70 01";
+#endif
+        INIT_FIND_PATTERN_POSTHOOK(appFree, bytePattern);
+    }
+
+    bool CreateRealloc()
+    {
+        // This is so we can use the macro for slightly cleaner code.
+        const auto InterfacePtr = ISharedProxyInterface::SPIInterfacePtr;
+
+        constexpr auto bytePattern =
+#ifdef GAMELE1 
+            /*48 89 5c 24 08*/ "48 89 6c 24 10 48 89 74 24 18 57 48 83 ec 30 48 8b e9 41 8b d9 48 8b 0d 2f 43 5c 01";
+#elif defined(GAMELE2)
+            /*48 89 5c 24 08*/ "48 89 6c 24 10 48 89 74 24 18 57 48 83 ec 30 48 8b e9 41 8b d9 48 8b 0d d7 59 5e 01";
+#elif defined(GAMELE3)
+            /*48 89 5c 24 08*/ "48 89 6c 24 10 48 89 74 24 18 57 48 83 ec 30 48 8b e9 41 8b d9 48 8b 0d d7 e3 70 01";
+#endif
+        INIT_FIND_PATTERN_POSTHOOK(appRealloc, bytePattern);
+    }
+public:
+    void* Malloc(DWORD count, DWORD alignment = 0x10)
+    {
+        if (appMalloc == nullptr)
+        {
+            CreateMalloc();
+        }
+        return appMalloc(count, alignment, 0);
+    }
+
+    void Free(void* allocation)
+    {
+        if (appFree == nullptr)
+        {
+            CreateFree();
+        }
+        appFree(allocation, 0);
+    }
+
+    void* Realloc(void* original, DWORD count, DWORD alignment = 0x10)
+    {
+	    if (appRealloc == nullptr)
+	    {
+            CreateRealloc();
+	    }
+        return appRealloc(original, count, alignment, 0);
+    }
+};
+UnrealMalloc GMalloc;

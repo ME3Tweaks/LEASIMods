@@ -280,3 +280,33 @@ template< class T >
 T const* begin(TArray<T> const& arr) { return cbegin(arr); }
 template< class T >
 T const* end(TArray<T> const& arr) { return cend(arr); }
+
+//============================================
+// TArray manipulation functions defined here so that they have access to GMalloc
+//============================================
+
+//Returns the index of the first slot added.
+template<class T>
+int AddUninitializedSpaceToTArray(TArray<T>& arr, int numElements)
+{
+	const INT originalCount = arr.Count;
+	if ((arr.Count += numElements) > arr.Max)
+	{
+		arr.Max = arr.Count; //Would probably be better to allocate slack, but this is simple and it works
+		arr.Data = (T*)GMalloc.Realloc(arr.Data, numElements * sizeof(T));
+	}
+
+	return originalCount;
+}
+
+template<class T>
+TArray<T> MakeCopyOfTArray(TArray<T>& arr)
+{
+	TArray<T> newArr;
+	newArr.Max = newArr.Count = arr.Count;
+	newArr.Data = static_cast<T*>(GMalloc.Malloc(arr.Count * sizeof(T)));
+	memcpy(filename.Data, This->Filename.Data, filename.Count * sizeof(T));
+	return newArr;
+}
+
+#include "TMap.h"
