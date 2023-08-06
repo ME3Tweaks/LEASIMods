@@ -208,10 +208,13 @@ private:
 		for (auto j = 0; j < objCount; j++)
 		{
 			const auto obj = objArray[j];
-			if (obj && obj->IsA(actorClass)) {
+			if (obj && obj->IsA(actorClass)) 
+			{
 				const auto objMapName = GetContainingMapName(obj);
 				if (_strcmpi(mapName, objMapName.Instanced()) != 0)
+				{
 					continue; // Go to next object.
+				}
 
 				//writeln(L"%hs", name);
 				if (_strcmpi(actorName, obj->GetInstancedName()) == 0)

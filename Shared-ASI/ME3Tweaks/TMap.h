@@ -343,6 +343,32 @@ public:
 		return Elements(id).Value;
 	}
 
+	ElementType* Find(KeyType key)
+	{
+		FSetElementId elementId = FindId(key);
+		if (elementId.IsValidId())
+		{
+			return &Elements(elementId).Value;
+		}
+		else
+		{
+			return nullptr;
+		}
+	}
+
+	const ElementType* Find(KeyType key) const
+	{
+		FSetElementId elementId = FindId(key);
+		if (elementId.IsValidId())
+		{
+			return &Elements(elementId).Value;
+		}
+		else
+		{
+			return nullptr;
+		}
+	}
+
 private:
 
 	int GetNumberOfHashBuckets(int numHashedElements) const
@@ -498,6 +524,18 @@ public:
 		FPair pair(key, value);
 		const FSetElementId id = Pairs.Add(pair);
 		return Pairs(id).Value;
+	}
+
+	TValue* Find(const TKey* key)
+	{
+		FPair* pair = Pairs.Find(key);
+		return pair ? &pair->Value : nullptr;
+	}
+
+	const TValue* Find(const TKey* key) const
+	{
+		FPair* pair = Pairs.Find(key);
+		return pair ? &pair->Value : nullptr;
 	}
 };
 

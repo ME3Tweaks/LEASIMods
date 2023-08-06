@@ -1,9 +1,5 @@
 #pragma once
 
-#include "../Common.h"
-#include "../Interface.h"
-#include "../ME3Tweaks/ME3TweaksHeader.h"
-
 #include <cstdio>
 #include <string>
 #include <fcntl.h>
@@ -12,6 +8,10 @@
 #include <shlwapi.h>
 #include "Strsafe.h"
 #include <thread>
+
+#include "../Common.h"
+#include "../Interface.h"
+#include "../ME3Tweaks/ME3TweaksHeader.h"
 
 #if defined GAMELE1
 #define SPI_GAME SPI_GAME_LE1
@@ -30,15 +30,15 @@
 
 #include "SharedData.h"
 #include "LEXPipe.h"
-
 #include "LEAnimViewer.h"
 #include "LELiveLevelEditor.h"
 #include "LEPathfindingGPS.h"
 #include "LEXCommunications.h"
+#include "FileLoader.h"
 
 #pragma comment(lib, "shlwapi.lib")
 
-SPI_PLUGINSIDE_SUPPORT(GAMETAG L" LEX Interop", L"ME3Tweaks", L"5.0.0", SPI_GAME, SPI_VERSION_ANY);
+SPI_PLUGINSIDE_SUPPORT(GAMETAG L" LEX Interop", L"ME3Tweaks", L"6.0.0", SPI_GAME, SPI_VERSION_ANY);
 SPI_PLUGINSIDE_POSTLOAD;
 SPI_PLUGINSIDE_ASYNCATTACH;
 
@@ -128,7 +128,31 @@ void sendInGameNotification(wchar_t* shortMessage, const int tlkIDToUse)
 }
 #endif
 
+// FindPackageFile hook
+// ======================================================================
 
+typedef unsigned (*tFindPackageFile)(void*, wchar_t*, FGuid*, FString*, const wchar_t*, unsigned);
+tFindPackageFile FindPackageFile = nullptr;
+tFindPackageFile FindPackageFile_orig = nullptr;
+
+/*
+ * This hook allows loading files that are not on the disk, but are in the PackagePrecacheMap.
+ * This works because UE's file loading code will always load a file from the PackagePrecacheMap instead of the disk if it can.
+ */
+unsigned FindPackageFile_hook(void* This, wchar_t* InName, FGuid* Guid, FString* OutFileName, const wchar_t* Language, unsigned unk)
+{
+	unsigned result = FindPackageFile_orig(This, InName, Guid, OutFileName, Language, unk);
+	if (!result)
+	{
+		const FString fileName(InName);
+		if (PackagePrecacheMap->Find(&fileName))
+		{
+			*OutFileName = MakeCopyOfFString(fileName);
+			result = TRUE;
+		}
+	}
+	return result;
+}
 
 SPI_IMPLEMENT_ATTACH
 {
@@ -141,6 +165,26 @@ SPI_IMPLEMENT_ATTACH
 	
 
 	INIT_POSTHOOK(ProcessEvent, LE_PATTERN_POSTHOOK_PROCESSEVENT)
+
+	constexpr auto packagePrecacheMapPattern =
+#ifdef GAMELE1 
+		;
+#elif defined(GAMELE2)
+		;
+#elif defined(GAMELE3)
+		"48 8d 0d c8 24 70 01 e8 fb fa ff ff";
+#endif
+	PackagePrecacheMap = static_cast<TMap<FString, FPackagePreCacheInfo>*>(findAddressLeaMov("PackagePrecacheMap", packagePrecacheMapPattern));
+
+	constexpr auto findPackageFilePattern =
+#ifdef GAMELE1
+		;
+#elif defined GAMELE2
+		;
+#elif defined GAMELE3
+		/*4c 89 4c 24 20*/ "48 89 4c 24 08 55 56 57 41 54 41 55 41 56 41 57 48 8b ec 48 81 ec 80 00 00 00 48 c7 45 b8 fe ff ff ff";
+#endif
+	INIT_POSTHOOK(FindPackageFile, findPackageFilePattern)
 
 
 #ifdef GAMELE1

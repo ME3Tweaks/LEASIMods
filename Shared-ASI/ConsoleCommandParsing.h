@@ -9,6 +9,10 @@ bool IsCmd(wchar_t** cmdRef, const wchar_t* cmdName)
 	int i = 0;
 	for (int j = 0; cmdName[j] != '\0'; ++i, ++j)
 	{
+		if (cmd[i] == L'\0')
+		{
+			return false;
+		}
 		if (std::toupper(cmd[i]) != std::toupper(cmdName[j]))
 		{
 			return false;
@@ -29,6 +33,10 @@ bool IsCmd(char** cmdRef, const char* cmdName)
 	int i = 0;
 	for (int j = 0; cmdName[j] != '\0'; ++i, ++j)
 	{
+		if (cmd[i] == '\0')
+		{
+			return false;
+		}
 		if (std::toupper(cmd[i]) != std::toupper(cmdName[j]))
 		{
 			return false;

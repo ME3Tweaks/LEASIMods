@@ -1,26 +1,21 @@
 #pragma once
 #include <winbase.h>
+
 #include "../Common.h"
+#include "FileLoader.h"
 #include "InteropActionQueue.h"
 #include "LEAnimViewer.h"
 #include "LELiveLevelEditor.h"
 #include "LEPathfindingGPS.h"
 #include "GenericCommands.h"
 
-void ProcessCommand(char str[1024], DWORD dword)
+inline void ProcessCommand(char* str, DWORD bytesRead, const HANDLE pipe)
 {
-	// Remove /r/n
-	auto test = str;
-	while (*test != '\r')
-	{
-		test++;
-	}
-	*test = '\0'; // This will remove \r\n from the string
-
 	writeln("Received command: %hs", str);
 
-	const bool handled = 
-	   GenericCommands::HandleCommand(str)
+	const bool handled =
+	   FileLoader::HandleCommand(str, bytesRead, pipe)
+	|| GenericCommands::HandleCommand(str)
 	|| LEPathfindingGPS::HandleCommand(str)
 	|| LELiveLevelEditor::HandleCommand(str)
 	|| LEAnimViewer::HandleCommand(str);
@@ -31,11 +26,13 @@ void ProcessCommand(char str[1024], DWORD dword)
 	//if (!handled) handled = LE1AnimViewer::HandleCommand(str);
 }
 
-void HandlePipe()
+constexpr auto LEXPIPE_COMMAND_BUFFER_SIZE = 1024;
+
+inline void HandlePipe()
 {
 	// Setup the LEX <-> LE game pipe
-	char buffer[1024]{};
-	DWORD dwRead;
+	char buffer[LEXPIPE_COMMAND_BUFFER_SIZE]{};
+	DWORD bytesRead;
 	HANDLE hPipe;
 #if defined GAMELE1
 	hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\LEX_LE1_COMM_PIPE"),
@@ -47,8 +44,8 @@ void HandlePipe()
 		PIPE_ACCESS_INBOUND,
 		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,   // FILE_FLAG_FIRST_PIPE_INSTANCE is not needed but forces CreateNamedPipe(..) to fail if the pipe already exists...
 		1,
-		1024 * 16,
-		1024 * 16,
+		LEXPIPE_COMMAND_BUFFER_SIZE * 16,
+		LEXPIPE_COMMAND_BUFFER_SIZE * 16,
 		NMPWAIT_USE_DEFAULT_WAIT,
 		nullptr);
 
@@ -60,11 +57,11 @@ void HandlePipe()
 		{
 			if (ConnectNamedPipe(hPipe, nullptr) != FALSE)   // wait for someone to connect to the pipe
 			{
-				while (ReadFile(hPipe, buffer, sizeof buffer - 1, &dwRead, nullptr) != FALSE)
+				while (ReadFile(hPipe, buffer, sizeof(buffer) - 1, &bytesRead, nullptr) != FALSE)
 				{
 					/* add terminating zero */
-					buffer[dwRead] = '\0';
-					ProcessCommand(buffer, dwRead);
+					buffer[bytesRead] = '\0';
+					ProcessCommand(buffer, bytesRead, hPipe);
 				}
 			}
 

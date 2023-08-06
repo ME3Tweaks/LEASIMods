@@ -7,7 +7,7 @@ struct OutParmInfo
 };
 
 // Code execution frame in UnrealScript
-#pragma pack(4)
+#pragma pack(push, 4)
 struct FFrame
 {
 	void* vtable;
@@ -23,6 +23,7 @@ struct FFrame
 	FFrame* PreviousFrame;
 	OutParmInfo* OutParms;
 };
+#pragma pack(pop)
 
 // A GNative function which takes no arguments and returns TRUE.
 void AlwaysPositiveNative(UObject* pObject, void* pFrame, void* pResult)
@@ -300,13 +301,22 @@ int AddUninitializedSpaceToTArray(TArray<T>& arr, int numElements)
 }
 
 template<class T>
-TArray<T> MakeCopyOfTArray(TArray<T>& arr)
+TArray<T> MakeCopyOfTArray(const TArray<T>& arr)
 {
 	TArray<T> newArr;
 	newArr.Max = newArr.Count = arr.Count;
 	newArr.Data = static_cast<T*>(GMalloc.Malloc(arr.Count * sizeof(T)));
-	memcpy(filename.Data, This->Filename.Data, filename.Count * sizeof(T));
+	memcpy(newArr.Data, arr.Data, newArr.Count * sizeof(T));
 	return newArr;
+}
+
+FString MakeCopyOfFString(const FString& str)
+{
+	FString newStr;
+	newStr.Max = newStr.Count = str.Count;
+	newStr.Data = static_cast<wchar_t*>(GMalloc.Malloc(str.Count * sizeof(wchar_t)));
+	memcpy(newStr.Data, str.Data, newStr.Count * sizeof(wchar_t));
+	return newStr;
 }
 
 #include "TMap.h"

@@ -148,7 +148,7 @@ public:
 		}
 
 		// 'CAUSEEVENT <EventName>'
-		// Causes a ConsoleEvent to occur in kismet
+		// Causes a RemoteEvent to occur in kismet
 		if (IsCmd(&command, "REMOTEEVENT "))
 		{
 			InteropActionQueue.push(new RemoteEventAction(s2ws(command)));
