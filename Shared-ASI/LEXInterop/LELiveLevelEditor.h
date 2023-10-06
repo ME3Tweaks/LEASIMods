@@ -7,6 +7,8 @@
 #include "../ConsoleCommandParsing.h"
 #include "LLEActions.h"
 #include "InteropActionQueue.h"
+#include "json.h"
+using json = nlohmann::json;
 
 //needed so that std::set<FName> will compile
 inline bool operator< (const FName& a, const FName& b)
@@ -75,57 +77,47 @@ private:
 		smc->Scale3D = scale3D;
 	}
 
-	static void AppendActorsInLevel(std::wostringstream& ss, ULevelBase* const level)
+	static json AppendActorsInLevel(ULevelBase* const level)
 	{
-		bool firstActor = true;
+		json actorsArray = json::array();
 		for (const auto actor : level->Actors)
 		{
 			if (!actor || IsDefaultObject(actor) || IsA<ABioWorldInfo>(actor))
 			{
 				continue;
 			}
-			if (!firstActor)
-			{
-				ss << L',';
-			}
-			ss << L"{";
+			json actorJson;
+			actorJson["Name"] = actor->GetInstancedName();
 			if (actor->IsA(AStaticMeshCollectionActor::StaticClass()))
 			{
 				const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(actor);
-				ss << L"\"Name\":\"" << actor->GetInstancedName() << L"\",\"Components\":[";
-				bool firstComponent = true;
+				json components = json::array();
 				for (const auto component : smca->Components)
 				{
-					if (!firstComponent)
-					{
-						ss << L',';
-					}
 					if (component && IsA<UStaticMeshComponent>(component))
 					{
 						NormalizeSMC(reinterpret_cast<UStaticMeshComponent*>(component));
-						ss << L"\"" << component->GetInstancedName() << L"\"";
+						components.push_back(component->GetInstancedName());
 					}
 					else
 					{
-						ss << L"null";
+						components.push_back(nullptr);
 					}
-					firstComponent = false;
 				}
-				ss << L']';
+				actorJson["Components"] = components;
 			}
 			else
 			{
-				ss << L"\"Name\":\"" << actor->GetInstancedName() << L"\"";
 				const auto tag = actor->Tag.Instanced();
 				if (strlen(tag) > 0 && _strcmpi(tag, actor->Class->GetName()) != 0)
 				{
 					// Tag != ClassName
-					ss << L",\"Tag\":\"" << tag << L"\"";
+					actorJson["Tag"] = tag;
 				}
 			}
-			ss << L"}";
-			firstActor = false;
+			actorsArray.push_back(actorJson);
 		}
+		return actorsArray;
 	}
 
 	static void RefreshLevels(const AWorldInfo* worldInfo, const std::vector<FName>* removedLevels = nullptr)
@@ -142,6 +134,10 @@ private:
 			}
 		}
 		LevelsLoadedByLLE.clear();
+		const auto mainLevel = reinterpret_cast<ULevelBase*>(worldInfo->Outer);
+		const auto mainPackage = mainLevel->Outer->Outer;
+		LevelsLoadedByLLE.insert(mainPackage->Name);
+
 		/* JSON format example
 		[
 		   {
@@ -162,17 +158,12 @@ private:
 		   }
 		]
 		 */
+		json topLevelJson = json::array();
 
-		std::wostringstream ss;
-		ss << L"LIVELEVELEDITOR LEVELSUPDATE [";
-
-		const auto mainLevel = reinterpret_cast<ULevelBase*>(worldInfo->Outer);
-		const auto mainPackage = mainLevel->Outer->Outer;
-		LevelsLoadedByLLE.insert(mainPackage->Name);
-		ss << L"{\"Name\":\"" << mainPackage->GetInstancedName() << L"\",\"Actors\":[";
-		AppendActorsInLevel(ss, mainLevel);
-		ss << L"]}";
-
+		json mainPackageJson;
+		mainPackageJson["Name"] = mainPackage->GetInstancedName();
+		mainPackageJson["Actors"] = AppendActorsInLevel(mainLevel);
+		topLevelJson.push_back(mainPackageJson);
 		
 		for (const auto streaming_level : worldInfo->StreamingLevels)
 		{
@@ -182,12 +173,15 @@ private:
 			}
 			LevelsLoadedByLLE.insert(streaming_level->PackageName);
 
-			ss << L',';
-			ss << L"{\"Name\":\"" << streaming_level->PackageName.Instanced() << L"\",\"Actors\":[";
-			AppendActorsInLevel(ss, streaming_level->LoadedLevel);
-			ss << L"]}";
+			json streamingLevelJson;
+			streamingLevelJson["Name"] = streaming_level->PackageName.Instanced();
+			streamingLevelJson["Actors"] = AppendActorsInLevel(streaming_level->LoadedLevel);
+			topLevelJson.push_back(streamingLevelJson);
 		}
-		ss << L"]";
+
+		std::wostringstream ss;
+		ss << L"LIVELEVELEDITOR LEVELSUPDATE ";
+		ss << s2ws(topLevelJson.dump());
 		SendStringToLEX(ss.str(), 1000);
 	}
 
