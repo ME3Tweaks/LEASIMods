@@ -56,6 +56,19 @@ struct RotateAction final : ActionBase
 	}
 };
 
+struct HideAction final : ActionBase
+{
+	AActor* Actor;
+	bool Hidden;
+
+	HideAction(AActor* actor, const bool hidden) : Actor(actor), Hidden(hidden) {}
+
+	void Execute() override
+	{
+		Actor->SetHidden(Hidden);
+	}
+};
+
 struct ComponentMoveAction final : ActionBase
 {
 	UStaticMeshComponent* Component;

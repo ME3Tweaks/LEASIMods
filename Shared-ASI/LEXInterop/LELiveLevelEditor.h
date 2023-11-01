@@ -249,6 +249,7 @@ private:
 			float scale = 0;
 			FVector scale3D{};
 			FRotator rotation{};
+			bool hidden;
 			if (IsA<AStaticMeshCollectionActor>(SelectedActor))
 			{
 				const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(SelectedActor);
@@ -261,6 +262,7 @@ private:
 					scale = smc->Scale;
 					scale3D = smc->Scale3D;
 					rotation = smc->Rotation;
+					hidden = false; // SMC can't be hidden, I think...
 				}
 			}
 			else
@@ -269,6 +271,7 @@ private:
 				scale = SelectedActor->DrawScale;
 				scale3D = SelectedActor->DrawScale3D;
 				rotation = SelectedActor->Rotation;
+				hidden = SelectedActor->bHidden;
 			}
 			std::wstringstream ss1;
 			ss1 << L"LIVELEVELEDITOR ACTORLOC " << translation.X << " " << translation.Y << " " << translation.Z;
@@ -284,6 +287,11 @@ private:
 			ss3 << L"LIVELEVELEDITOR ACTORSCALE " << scale << " " << scale3D.X << " " << scale3D.Y << " " << scale3D.Z;
 			ss3 << L'\0';
 			SendStringToLEX(ss3.str());
+
+			std::wstringstream ss4;
+			ss4 << L"LIVELEVELEDITOR HIDDEN " << hidden;
+			ss4 << L'\0';
+			SendStringToLEX(ss4.str());
 		}
 	}
 
@@ -322,6 +330,26 @@ private:
 			else
 			{
 				InteropActionQueue.push(new RotateAction(SelectedActor, FRotator{ pitch, yaw, roll }));
+			}
+		}
+	}
+
+	static void SetActorHidden(const bool newHidden)
+	{
+		if (SelectedActor) {
+			if (IsA<AStaticMeshCollectionActor>(SelectedActor) && SelectedComponentIndex >= 0)
+			{
+				const auto smca = reinterpret_cast<AStaticMeshCollectionActor*>(SelectedActor);
+				const auto compC = smca->Components.Data[SelectedComponentIndex];
+				if (compC && compC->IsA(UStaticMeshComponent::StaticClass()))
+				{
+					// How to hide a SMC? Is that possible?
+					// InteropActionQueue.push(new HideAction(SelectedActor, newHidden));
+				}
+			}
+			else
+			{
+				InteropActionQueue.push(new HideAction(SelectedActor, newHidden));
 			}
 		}
 	}
@@ -539,6 +567,15 @@ public:
 			const auto scale = strtof(command, &command);
 
 			SetActorDrawScale(scale);
+			return true;
+		}
+
+		if (IsCmd(&command, "LLE_SET_ACTOR_HIDDEN "))
+		{
+			bool b;
+			istringstream(command) >> std::boolalpha >> b;
+
+			SetActorHidden(b);
 			return true;
 		}
 
