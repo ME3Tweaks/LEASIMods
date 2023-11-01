@@ -38,7 +38,7 @@
 
 #pragma comment(lib, "shlwapi.lib")
 
-SPI_PLUGINSIDE_SUPPORT(GAMETAG L" LEX Interop", L"ME3Tweaks", L"5.0.0", SPI_GAME, SPI_VERSION_ANY);
+SPI_PLUGINSIDE_SUPPORT(GAMETAG L" LEX Interop", L"ME3Tweaks", L"7.0.0", SPI_GAME, SPI_VERSION_ANY);
 SPI_PLUGINSIDE_POSTLOAD;
 SPI_PLUGINSIDE_ASYNCATTACH;
 
@@ -151,7 +151,7 @@ SPI_IMPLEMENT_ATTACH
 		// This is hooked so we can capture the first parameter address
 		INIT_POSTHOOK(CacheContentWrapper, /*48 8b c4 55 41*/ "54 41 55 41 56 41 57 48 8d 68 a1 48 81 ec 00 01 00 00 48 c7 45 27 fe ff ff ff 48 89 58 08 48 89 70 10 48 89 78 18 45 8b e9") // For ISB registration
 		INIT_FIND_PATTERN_POSTHOOK(CacheContent, /*"48 8b c4 44 89"*/ "48 20 44 89 40 18 55 56 57 41 54 41 55 41 56 41 57 48 8d 68 a1 48 81 ec a0 00 00 00")
-	#endif
+#endif
 
 
 		// I'm not sure how this handles the scope
