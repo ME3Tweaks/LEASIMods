@@ -8,31 +8,27 @@
 #include "../../Shared-ASI/Interface.h"
 #include "../../Shared-ASI/ME3Tweaks/ME3TweaksHeader.h"
 
-#define MYHOOK "KismetLogger_"
+#define MYHOOK "FunctionLogger_"
+#if defined GAMELE1
+#define SPI_GAME SPI_GAME_LE1
+#define GAMETAG "LE1"
+#elif defined GAMELE2
+#define SPI_GAME SPI_GAME_LE2
+#define GAMETAG "LE2"
+#elif defined GAMELE3
+#define SPI_GAME SPI_GAME_LE3
+#define GAMETAG "LE3"
+#endif
 
-#ifdef GAMELE1
-SPI_PLUGINSIDE_SUPPORT(L"FunctionLogger", L"2.0.0", L"Mgamerz", SPI_GAME_LE1, SPI_VERSION_ANY);
-#endif
-#ifdef GAMELE2
-SPI_PLUGINSIDE_SUPPORT(L"FunctionLogger", L"2.0.0", L"Mgamerz", SPI_GAME_LE2, SPI_VERSION_ANY);
-#endif
-#ifdef GAMELE3
-SPI_PLUGINSIDE_SUPPORT(L"FunctionLogger", L"2.0.0", L"Mgamerz", SPI_GAME_LE3, SPI_VERSION_ANY);
-#endif
+#define ASINAME L"FunctionLogger"
+#define ASIVERSION "3"
+#define ASIDEV L"Mgamerz"
+
+SPI_PLUGINSIDE_SUPPORT(ASINAME, ASIVERSION L".0.0", ASIDEV, SPI_GAME, SPI_VERSION_ANY);
 SPI_PLUGINSIDE_POSTLOAD;
 SPI_PLUGINSIDE_ASYNCATTACH;
 
-#ifdef GAMELE1
-ME3TweaksASILogger logger("Function Logger v2", "LE1FunctionLog.log");
-#endif
-#ifdef GAMELE2
-ME3TweaksASILogger logger("Function Logger v2", "LE2FunctionLog.log");
-#endif
-#ifdef GAMELE3
-ME3TweaksASILogger logger("Function Logger v2", "LE3FunctionLog.log");
-#endif
-
-
+ME3TweaksASILogger logger("Function Logger v" ASIVERSION, GAMETAG "FunctionLog.log");
 
 // ProcessEvent hook
 // ======================================================================
