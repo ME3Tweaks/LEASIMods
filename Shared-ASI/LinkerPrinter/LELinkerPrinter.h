@@ -103,12 +103,12 @@ void PrintLinkers()
 			swprintf(buffer, 1024, L"%hs -> %s\n", key.c_str(), val.c_str());
 		}
 
-		logger.writeWideToLog(buffer, false);
+		logger.writeWideToLog(buffer, false, false);
 		numDone++;
 	}
 
 	cout << "\rPrinted linker source of " << numDone << " objects\n";
-	logger.writeWideLineToLog(L"------------------------------");
+	logger.writeWideLineToLog(L"------------------------------", true);
 	CanPrint = true;
 }
 
@@ -152,7 +152,7 @@ SPI_IMPLEMENT_ATTACH
 		return false;
 	}
 
-	writeln("LinkerPriner: Press CTRL + O to dump all objects that have loaded and their source.");
+	writeln("LinkerPrinter: Press CTRL + O to dump all objects that have loaded and their source.");
 	return true;
 }
 
