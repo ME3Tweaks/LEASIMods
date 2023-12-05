@@ -259,14 +259,20 @@ public:
 		}
 	}
 
-	void writeWideToLog(std::wstring_view wstr, bool outputToConsole = true) {
+	void writeWideToLog(std::wstring_view wstr, bool bTimeStamp, bool outputToConsole = true) {
 		fwprintf(log, L"%s", wstr.data());
 		if (outputToConsole)
 			writeln(L"%s", wstr.data());
 		fflush(log);
 	}
 
-	void writeWideLineToLog(std::wstring_view wstr, bool outputToConsole = true) {
+	void writeWideLineToLog(std::wstring_view wstr, bool bTimeStamp, bool outputToConsole = true) {
+		if (bTimeStamp) {
+			wstring timeStamp = getTimestampStrW();
+			fwprintf(log, timeStamp.c_str());
+			if (outputToConsole)
+				writeMsg(L"%s", timeStamp.c_str());
+		}
 		fwprintf(log, L"%s\n", wstr.data());
 		if (outputToConsole)
 			writeln(L"%s", wstr.data());
@@ -306,6 +312,13 @@ private:
 		ULONGLONG secondsSinceBoot = (currenttime - boottime) / 1000;
 		int ms = (currenttime - boottime) % 1000;
 		return string_format("[%llu.%d] ", secondsSinceBoot, ms);
+	}
+
+	wstring getTimestampStrW() {
+		ULONGLONG currenttime = GetTickCount64();
+		ULONGLONG secondsSinceBoot = (currenttime - boottime) / 1000;
+		int ms = (currenttime - boottime) % 1000;
+		return wstring_format(L"[%llu.%d] ", secondsSinceBoot, ms);
 	}
 };
 

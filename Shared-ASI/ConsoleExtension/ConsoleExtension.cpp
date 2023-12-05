@@ -106,7 +106,7 @@ unsigned ExecHandler_hook(UEngine* Context, wchar_t* cmd, void* unk)
 		if (const auto cheatMan = reinterpret_cast<UBioCheatManager*>(FindObjectOfType(UBioCheatManager::StaticClass())))
 		{
 			FName levelName;
-			StaticVariables::CreateName(token, 0, &levelName);
+			StaticVariables::CreateName(token, &levelName);
 			cheatMan->StreamLevelIn(levelName);
 		}
 	}
@@ -117,7 +117,7 @@ unsigned ExecHandler_hook(UEngine* Context, wchar_t* cmd, void* unk)
 		if (const auto cheatMan = reinterpret_cast<UBioCheatManager*>(FindObjectOfType(UBioCheatManager::StaticClass())))
 		{
 			FName levelName;
-			StaticVariables::CreateName(token, 0, &levelName);
+			StaticVariables::CreateName(token, &levelName);
 			cheatMan->StreamLevelOut(levelName);
 		}
 	}
@@ -128,7 +128,7 @@ unsigned ExecHandler_hook(UEngine* Context, wchar_t* cmd, void* unk)
 		if (const auto cheatMan = reinterpret_cast<UBioCheatManager*>(FindObjectOfType(UBioCheatManager::StaticClass())))
 		{
 			FName levelName;
-			StaticVariables::CreateName(token, 0, &levelName);
+			StaticVariables::CreateName(token, &levelName);
 			cheatMan->OnlyLoadLevel(levelName);
 		}
 	}
@@ -137,6 +137,12 @@ unsigned ExecHandler_hook(UEngine* Context, wchar_t* cmd, void* unk)
 	return FALSE;
 }
 
+#ifdef GAMELE3
+// This the constructor for StaticConstructObject in LE3
+#define PATTERN_CONSTRUCT_OBJECT /*48 8b c4 48 89*/ "50 10 56 57 41 55 41 56 41 57 48 83 ec 70 48 c7 40 b8 fe ff ff ff" // LE3
+typedef void* (*tStaticConstructObject) (UClass* Class, UObject* InOuter, FName Name, long long SetFlags, UObject* Template, void* outputDevice, UObject* SubobjectRoot, struct FObjectInstancingGraph* InstanceGraph);
+tStaticConstructObject StaticConstructObject = nullptr;
+#endif
 
 #ifdef GAMELE3
 #define PLAYERTICK_FUNCNAME "Function SFXGame.BioPlayerController.PlayerTick"
@@ -176,7 +182,9 @@ SPI_IMPLEMENT_ATTACH
 	INIT_CHECK_SDK()
 	INIT_POSTHOOK(ExecHandler, LE_PATTERN_POSTHOOK_EXEC)
 	INIT_POSTHOOK(ProcessEvent, LE_PATTERN_POSTHOOK_PROCESSEVENT)
-
+#ifdef GAMELE3
+	INIT_FIND_PATTERN_POSTHOOK(StaticConstructObject, PATTERN_CONSTRUCT_OBJECT)
+#endif
 	return true;
 }
 
