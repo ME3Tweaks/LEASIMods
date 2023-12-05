@@ -10,7 +10,7 @@
 
 
 #define MYHOOK "LinkerPrinter_"
-#define VERSION L"3.0.0"
+#define VERSION L"4.0.0"
 
 #include "../../Shared-ASI/Interface.h"
 
