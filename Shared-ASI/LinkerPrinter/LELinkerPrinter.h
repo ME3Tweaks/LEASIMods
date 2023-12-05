@@ -31,7 +31,7 @@ SPI_PLUGINSIDE_SUPPORT(L"LinkerPrinter", VERSION, L"ME3Tweaks", SPI_GAME_LE3, SP
 SPI_PLUGINSIDE_POSTLOAD;
 SPI_PLUGINSIDE_ASYNCATTACH;
 
-ME3TweaksASILogger logger("Linker Printer v2", "LinkerPrinter.log");
+ME3TweaksASILogger logger("Linker Printer v4", "LinkerPrinter.log");
 
 bool CanPrint = true;
 
