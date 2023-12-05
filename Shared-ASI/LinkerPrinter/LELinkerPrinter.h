@@ -118,7 +118,6 @@ void ProcessEvent_hook(UObject* Context, UFunction* Function, void* Parms, void*
 	// Changed to subclasses of BioHUD to support custom debugger implementation classes of HUD
 	if (CanPrint && strcmp(Function->Name.GetName(), "PostRender") == 0 && Context->IsA("BioHUD"))
 	{
-		writeln("PostRender");
 		// Toggle drawing/not drawing
 		if ((GetKeyState('O') & 0x8000) && (GetKeyState(VK_CONTROL) & 0x8000)) {
 			if (CanPrint) {
