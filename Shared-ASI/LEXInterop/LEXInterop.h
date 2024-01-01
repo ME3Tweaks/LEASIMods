@@ -145,7 +145,7 @@ unsigned FindPackageFile_hook(void* This, wchar_t* InName, FGuid* Guid, FString*
 	if (!result)
 	{
 		const FString fileName(InName);
-		if (PackagePrecacheMap->Find(&fileName))
+		if (PackagePrecacheMap->Find(fileName))
 		{
 			*OutFileName = MakeCopyOfFString(fileName);
 			result = TRUE;

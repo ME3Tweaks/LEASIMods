@@ -490,7 +490,7 @@ class TMap
 		TKey Key;
 		TValue Value;
 
-		FPair(TKey& key, TValue& value) : Key(key), Value(value) {}
+		FPair(const TKey& key, TValue& value) : Key(key), Value(value) {}
 		FPair(const FPair& other) : Key(other.Key), Value(other.Value) {}
 	};
 
@@ -519,20 +519,20 @@ class TMap
 	TSet<FPair, KeyFuncs> Pairs;
 public:
 
-	TValue& Set(TKey& key, TValue& value)
+	TValue& Set(const TKey& key, TValue& value)
 	{
 		FPair pair(key, value);
 		const FSetElementId id = Pairs.Add(pair);
 		return Pairs(id).Value;
 	}
 
-	TValue* Find(const TKey* key)
+	TValue* Find(const TKey key)
 	{
 		FPair* pair = Pairs.Find(key);
 		return pair ? &pair->Value : nullptr;
 	}
 
-	const TValue* Find(const TKey* key) const
+	const TValue* Find(const TKey key) const
 	{
 		FPair* pair = Pairs.Find(key);
 		return pair ? &pair->Value : nullptr;
