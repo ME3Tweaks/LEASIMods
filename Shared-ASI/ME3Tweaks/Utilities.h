@@ -287,13 +287,13 @@ T const* end(TArray<T> const& arr) { return cend(arr); }
 
 //Returns the index of the first slot added.
 template<class T>
-int AddUninitializedSpaceToTArray(TArray<T>& arr, int numElements)
+int AddUninitializedSpaceToTArray(TArray<T>& arr, int const numElements)
 {
 	const INT originalCount = arr.Count;
 	if ((arr.Count += numElements) > arr.Max)
 	{
 		arr.Max = arr.Count; //Would probably be better to allocate slack, but this is simple and it works
-		arr.Data = (T*)GMalloc.Realloc(arr.Data, numElements * sizeof(T));
+		arr.Data = (T*)GMalloc.Realloc(arr.Data, arr.Count * sizeof(T));
 	}
 
 	return originalCount;
